@@ -1,17 +1,24 @@
 import CryptoJS from 'crypto-js';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_MASTER_KEY || 'default-dev-key-min-32-chars-long';
+function getEncryptionKey() {
+  const key = process.env.ENCRYPTION_MASTER_KEY || 'default-dev-key-min-32-chars-long';
+  return key;
+}
 
 export function encryptField(value) {
   if (!value) return value;
-  return CryptoJS.AES.encrypt(value, ENCRYPTION_KEY).toString();
+  const key = getEncryptionKey();
+  const encrypted = CryptoJS.AES.encrypt(value, key).toString();
+  return encrypted;
 }
 
 export function decryptField(value) {
   if (!value) return value;
   try {
-    const bytes = CryptoJS.AES.decrypt(value, ENCRYPTION_KEY);
-    return bytes.toString(CryptoJS.enc.Utf8);
+    const key = getEncryptionKey();
+    const bytes = CryptoJS.AES.decrypt(value, key);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    return decrypted;
   } catch (error) {
     console.error('Decryption error:', error);
     return value;

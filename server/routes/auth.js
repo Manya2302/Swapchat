@@ -101,22 +101,25 @@ router.post('/verify-otp',
 
       const { email, otp } = req.body;
 
-      // Find candidate OTPs by otp value (encryption is non-deterministic so matching ciphertext may fail)
-      const candidates = await OTP.find({ otp, verified: false }).sort({ createdAt: -1 }).limit(5);
+      // Find candidate OTPs by otp value (use .lean() to get raw data without getters)
+      const candidates = await OTP.find({ otp, verified: false }).sort({ createdAt: -1 }).limit(5).lean();
 
       // Try to find a candidate whose decrypted email matches the provided email
       const now = new Date();
       const graceMs = 2 * 60 * 1000; // 2 minute grace
       const normalizedProvidedEmail = (email || '').toString().trim().toLowerCase();
+      
       let matched = null;
       for (const c of candidates) {
         let storedEmail;
         try {
+          // c.email is raw encrypted value because we used .lean()
           storedEmail = decryptField(c.email);
         } catch (e) {
           storedEmail = null;
         }
         const normalizedStoredEmail = storedEmail ? storedEmail.toString().trim().toLowerCase() : null;
+        
         if (normalizedStoredEmail === normalizedProvidedEmail) {
           const expiresAt = c.expiresAt instanceof Date ? c.expiresAt : new Date(c.expiresAt);
           if ((expiresAt.getTime() + graceMs) > now.getTime()) {
@@ -134,8 +137,8 @@ router.post('/verify-otp',
         return res.status(400).json({ error: 'Invalid or expired OTP' });
       }
 
-      matched.verified = true;
-      await matched.save();
+      // Update OTP as verified (matched is a plain object from .lean())
+      await OTP.updateOne({ _id: matched._id }, { verified: true });
 
       res.json({ message: 'OTP verified successfully' });
     } catch (error) {
