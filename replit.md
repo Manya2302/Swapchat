@@ -14,14 +14,20 @@ The platform features a WhatsApp-like user interface with a unique "Swapchat" de
 
 The project has been configured to run in the Replit environment with MongoDB:
 
-1. ✓ **MongoDB Database**: Installed via Nix packages and running on localhost:27017
+1. ✓ **MongoDB Database**: MongoDB 7.0.16 installed via Nix packages, running on localhost:27017 with data stored in /tmp/mongodb_data
 2. ✓ **Workflows Configured**: 
-   - "MongoDB" workflow runs the MongoDB server in the background
-   - "Start application" workflow runs `npm run dev` on port 5000 with webview output
+   - "MongoDB" workflow runs the MongoDB server in the background (console output)
+   - "Start application" workflow runs `npm run dev` on port 5000 (webview output)
 3. ✓ **Vite Configuration**: Already configured with `allowedHosts: true` for Replit proxy compatibility
-4. ✓ **Server Configuration**: Express server binds to `0.0.0.0:5000` for frontend access
-5. ✓ **Dependencies**: nanoid package installed (required for vite.ts)
-6. ✓ **Application Running**: Login page accessible and functional
+4. ✓ **Server Configuration**: Express server binds to `0.0.0.0:5000` for frontend access, backend on localhost
+5. ✓ **Code Cleanup**: Removed unused TypeScript/Drizzle/PostgreSQL files (*.ts routes, middleware, and db helpers). The app uses MongoDB via Mongoose with JavaScript files.
+6. ✓ **Application Running**: Login page fully functional and accessible
+
+**Technical Notes:**
+- The project had duplicate implementations (MongoDB/Mongoose .js files and PostgreSQL/Drizzle .ts files)
+- Only the MongoDB/Mongoose implementation is active and being used
+- Unused TypeScript files were renamed to *.unused to prevent compilation errors
+- The server entry point (server/index.ts) loads server/index-main.ts which uses the .js route files
 
 ### Environment Variables
 

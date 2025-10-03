@@ -7,7 +7,7 @@ channel = "stable-25_05"
 packages = ["mongodb"]
 
 [deployment]
-deploymentTarget = "autoscale"
+deploymentTarget = "vm"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
@@ -18,6 +18,10 @@ externalPort = 80
 [[ports]]
 localPort = 38951
 externalPort = 3001
+
+[[ports]]
+localPort = 40267
+externalPort = 3003
 
 [[ports]]
 localPort = 41153
@@ -40,23 +44,11 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start application"
+args = "MongoDB"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "MongoDB"
-
-[[workflows.workflow]]
-name = "Start application"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
+args = "Start application"
 
 [[workflows.workflow]]
 name = "MongoDB"
@@ -68,6 +60,18 @@ args = "mongod --dbpath /tmp/mongodb_data --bind_ip 127.0.0.1 --port 27017 --log
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [agent]
 integrations = ["javascript_websocket:1.0.0"]
