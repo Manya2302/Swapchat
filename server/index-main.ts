@@ -1,8 +1,8 @@
 console.log('Starting server initialization...');
 
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
@@ -18,6 +18,11 @@ import { authenticateSocket } from './middleware/auth.js';
 import { setupVite, serveStatic } from './vite.js';
 
 console.log('All imports loaded');
+
+interface AuthenticatedSocket extends Socket {
+  userId?: string;
+  username?: string;
+}
 
 const app = express();
 const server = createServer(app);
@@ -59,11 +64,13 @@ app.get('/api/health', (req, res) => {
 
 io.use(authenticateSocket);
 
-const userSockets = new Map();
+const userSockets = new Map<string, string>();
 
-io.on('connection', (socket) => {
+io.on('connection', (socket: AuthenticatedSocket) => {
   console.log(`User connected: ${socket.username}`);
-  userSockets.set(socket.username, socket.id);
+  if (socket.username) {
+    userSockets.set(socket.username, socket.id);
+  }
 
   socket.emit('connected', { username: socket.username });
 
@@ -72,7 +79,7 @@ io.on('connection', (socket) => {
       const { to, encryptedPayload } = data;
       
       const block = await addMessageBlock(
-        socket.username,
+        socket.username!,
         to,
         encryptedPayload
       );
@@ -106,11 +113,13 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.username}`);
-    userSockets.delete(socket.username);
+    if (socket.username) {
+      userSockets.delete(socket.username);
+    }
   });
 });
 
-app.use((err, req, res, next) => {
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Error:', err);
   const status = err.status || err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
