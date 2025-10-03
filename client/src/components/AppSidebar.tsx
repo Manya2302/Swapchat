@@ -1,4 +1,4 @@
-import { Search, Plus, Shield, BookOpen } from "lucide-react";
+import { Search, Plus, Shield, BookOpen, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ContactItem from "./ContactItem";
@@ -18,6 +18,7 @@ interface AppSidebarProps {
   activeContactId?: string;
   onSelectContact: (id: string) => void;
   onViewLedger: () => void;
+  onLogout: () => void;
 }
 
 export default function AppSidebar({
@@ -25,6 +26,7 @@ export default function AppSidebar({
   activeContactId,
   onSelectContact,
   onViewLedger,
+  onLogout,
 }: AppSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -81,7 +83,16 @@ export default function AppSidebar({
         )}
       </div>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-2">
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2"
+          onClick={onLogout}
+          data-testid="button-logout"
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </Button>
         <Button
           variant="outline"
           className="w-full justify-start gap-2"

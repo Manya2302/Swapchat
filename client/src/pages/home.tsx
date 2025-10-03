@@ -244,6 +244,7 @@ export default function Home({ onLogout }: HomeProps) {
             setActiveView("ledger");
             setIsSidebarOpen(false);
           }}
+          onLogout={onLogout}
         />
       </div>
       <div className="flex-1 min-w-0">
