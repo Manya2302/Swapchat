@@ -85,6 +85,7 @@ export default function RegistrationForm({ onSuccess }: RegistrationFormProps) {
   const createAccount = async () => {
     setIsLoading(true);
     setError("");
+    setSuccess("");
     try {
       const usernameAvailable = await checkUsername();
       if (!usernameAvailable) {
@@ -116,7 +117,16 @@ export default function RegistrationForm({ onSuccess }: RegistrationFormProps) {
       localStorage.setItem('user', JSON.stringify({ ...data.user, privateKey }));
       onSuccess(data.token, { ...data.user, privateKey });
     } catch (err: any) {
-      setError(err.message || "Registration failed");
+      setSuccess("");
+      const errorMessage = err.message || "Registration failed";
+      if (errorMessage.includes("Email not verified")) {
+        setError("Email verification expired. Please start registration again.");
+        setTimeout(() => setStep(1), 3000);
+      } else if (errorMessage.includes("errors")) {
+        setError("Invalid registration data. Please check all fields.");
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
