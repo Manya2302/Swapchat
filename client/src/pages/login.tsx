@@ -13,10 +13,8 @@ export default function Login({ onAuthenticated }: LoginProps) {
       
       <div className="mt-4 text-center text-sm">
         <span className="text-muted-foreground">Don't have an account? </span>
-        <Link href="/register">
-          <a className="text-primary hover:underline font-medium" data-testid="link-register">
-            Sign up
-          </a>
+        <Link href="/register" className="text-primary hover:underline font-medium" data-testid="link-register">
+          Sign up
         </Link>
       </div>
     </AuthLayout>
