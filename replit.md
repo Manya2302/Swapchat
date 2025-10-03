@@ -18,18 +18,32 @@ The project has been successfully configured to run in the Replit environment:
 4. **Server Configuration**: Express server binds to `0.0.0.0:5000` for frontend access
 5. **Deployment**: Configured for autoscale deployment with build and start scripts
 
-### Required Environment Secrets
+### Environment Secrets Configuration ✓
 
-The following secrets need to be added in Replit's Secrets panel for full functionality:
+All required secrets have been configured:
 
-- `DATABASE_URL` ✓ (Already configured)
-- `JWT_SECRET` - Secret key for JWT signing (required for authentication)
-- `ENCRYPTION_MASTER_KEY` - Master key for field encryption (minimum 32 characters, required for data encryption)
-- `EMAIL_SERVICE` - SMTP service provider (e.g., "gmail") (optional for email features)
-- `EMAIL_USER` - Email sender address (optional for email features)
-- `EMAIL_PASSWORD` - Email account password (optional for email features)
+- `DATABASE_URL` ✓ (PostgreSQL connection)
+- `JWT_SECRET` ✓ (Session token signing)
+- `ENCRYPTION_MASTER_KEY` ✓ (Data encryption)
+- `HCAPTCHA_SECRET_KEY` ✓ (Bot protection)
+- `EMAIL_SERVICE` ✓ (SMTP provider)
+- `EMAIL_USER` ✓ (Email sender)
+- `EMAIL_PASSWORD` ✓ (Email authentication)
 
-Note: The application can run without email configuration, but OTP verification features will not work.
+### Recent Updates (October 3, 2025)
+
+**Authentication UI Improvements:**
+- Separated login and registration into dedicated pages (`/login` and `/register`)
+- Created shared `AuthLayout` component for consistent UI across auth pages
+- Added navigation links between login and register pages
+- Improved error handling in registration flow
+- Fixed React warnings for nested anchor tags
+
+**Security Enhancements:**
+- Configured hCaptcha for bot protection on login
+- Enabled IP-based authorization with email confirmation for new devices
+- Set up OTP email verification for registration
+- All authentication secrets properly configured
 
 ### Running the Project
 
