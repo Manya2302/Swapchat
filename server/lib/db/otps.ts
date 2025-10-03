@@ -1,3 +1,4 @@
+
 import { db } from '../../db.js';
 import { otps } from '../../../shared/schema.js';
 import { eq, and, lt, gt } from 'drizzle-orm';
@@ -31,10 +32,14 @@ export async function findValidOTP(email: string, otpCode: string) {
   
   const validOtp = allOtps.find(otp => {
     const decryptedEmail = decryptField(otp.email);
+    // Ensure expiresAt is a Date object
+    const expiresAt = otp.expiresAt instanceof Date ? otp.expiresAt : new Date(otp.expiresAt);
+    // Allow a small grace period (1 minute) for clock skew between systems
+    const graceMs = 60 * 1000;
     return decryptedEmail === email &&
            otp.otp === otpCode &&
            !otp.verified &&
-           otp.expiresAt > now;
+           (expiresAt.getTime() + graceMs) > now.getTime();
   });
   
   return validOtp;

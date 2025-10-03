@@ -1,23 +1,34 @@
 import nodemailer from 'nodemailer';
 
-const hasEmailConfig = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD;
+// Prefer explicit SMTP settings (recommended). Fall back to simple service+user+pass if provided.
+const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+const hasEmailConfig = hasSmtpConfig || (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD);
 
-const transporter = hasEmailConfig ? nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-}) : null;
+let transporter = null;
+if (hasSmtpConfig) {
+  transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+} else if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+  transporter = nodemailer.createTransport({
+    service: process.env.EMAIL_SERVICE || 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+}
 
 export async function sendOTPEmail(email, otp) {
   if (!hasEmailConfig) {
-    console.log('\n===========================================');
-    console.log('📧 DEVELOPMENT MODE - OTP EMAIL');
-    console.log('===========================================');
-    console.log(`To: ${email}`);
-    console.log(`OTP: ${otp}`);
-    console.log('===========================================\n');
+    // Development mode: do not print OTP values to console to avoid accidental leakage.
+    console.log(`📧 DEVELOPMENT MODE - OTP would be sent to ${email} (SMTP not configured)`);
     return true;
   }
 
@@ -26,16 +37,44 @@ export async function sendOTPEmail(email, otp) {
     to: email,
     subject: 'Swapchat - Email Verification OTP',
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2DE2A9;">Swapchat Email Verification</h2>
-        <p>Your OTP for email verification is:</p>
-        <h1 style="background: #f4f4f4; padding: 20px; text-align: center; letter-spacing: 5px; color: #2DE2A9;">
-          ${otp}
-        </h1>
-        <p>This OTP will expire in 10 minutes.</p>
-        <p style="color: #666; font-size: 12px;">
-          If you didn't request this, please ignore this email.
-        </p>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; max-width:600px; margin:0 auto; color:#111;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7fb; padding:30px 0;">
+          <tr>
+            <td align="center">
+              <table role="presentation" width="600" style="background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 6px 18px rgba(32,33,36,0.08);">
+                <tr style="background:linear-gradient(90deg,#5865F2,#1877F2);">
+                  <td style="padding:18px 24px; color:#fff;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                      <div style="width:40px; height:40px; background:rgba(255,255,255,0.12); border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700;">S</div>
+                      <div style="font-size:18px; font-weight:700;">Swapchat</div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:28px 36px;">
+                    <h2 style="margin:0 0 8px 0; font-size:20px; color:#0f172a;">Verify your email</h2>
+                    <p style="margin:0 0 18px 0; color:#475569;">Use the code below to confirm your email address. This code will expire in 10 minutes.</p>
+
+                    <div style="margin:20px 0; text-align:center;">
+                      <div style="display:inline-block; background:#f4f6ff; border-radius:10px; padding:18px 28px; font-size:28px; letter-spacing:6px; font-weight:700; color:#111;">${otp}</div>
+                    </div>
+
+                    <p style="margin:8px 0 18px 0; color:#64748b; font-size:13px;">If you didn't request this, you can safely ignore this email.</p>
+
+                    <div style="text-align:center; margin-top:6px;">
+                      <a href="#" style="display:inline-block; background:#5865F2; color:#fff; padding:10px 18px; border-radius:8px; text-decoration:none; font-weight:600;">Open Swapchat</a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 36px; background:#f8fafc; font-size:12px; color:#94a3b8;">
+                    <div>© ${new Date().getFullYear()} Swapchat — Built with care</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </div>
     `,
   };
@@ -67,28 +106,42 @@ export async function sendIPAuthorizationEmail(email, username, ip, authUrl) {
     to: email,
     subject: 'Swapchat - New Login Detected',
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2DE2A9;">🔐 New Login Detected</h2>
-        <p>Hello <strong>${username}</strong>,</p>
-        <p>We detected a login attempt from a new IP address:</p>
-        <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>IP Address:</strong> ${ip}</p>
-          <p style="margin: 5px 0;"><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-        </div>
-        <p>If this was you, click the button below to authorize this device:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${authUrl}" 
-             style="background: #2DE2A9; color: white; padding: 12px 30px; 
-                    text-decoration: none; border-radius: 5px; display: inline-block;">
-            Authorize This Device
-          </a>
-        </div>
-        <p style="color: #FF6B6B; font-weight: bold;">
-          If this wasn't you, please change your password immediately.
-        </p>
-        <p style="color: #666; font-size: 12px;">
-          This authorization link will expire in 1 hour.
-        </p>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; max-width:600px; margin:0 auto; color:#111;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7fb; padding:30px 0;">
+          <tr>
+            <td align="center">
+              <table role="presentation" width="600" style="background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 6px 18px rgba(32,33,36,0.08);">
+                <tr style="background:linear-gradient(90deg,#5865F2,#1877F2);">
+                  <td style="padding:14px 20px; color:#fff;">
+                    <div style="display:flex; align-items:center; gap:10px;"><div style="width:36px; height:36px; background:rgba(255,255,255,0.12); border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700;">S</div><div style="font-size:16px; font-weight:700;">Swapchat</div></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:22px 30px;">
+                    <h3 style="margin:0 0 8px 0; font-size:18px; color:#0f172a;">New sign-in attempt</h3>
+                    <p style="margin:0 0 14px 0; color:#475569;">Hi <strong>${username}</strong>, we detected a login attempt from a new device or IP address.</p>
+
+                    <div style="background:#f8fafc; border-radius:8px; padding:12px; margin-bottom:16px;">
+                      <div style="font-size:14px; color:#334155;"><strong>IP Address:</strong> ${ip}</div>
+                      <div style="font-size:13px; color:#64748b;"><strong>Time:</strong> ${new Date().toLocaleString()}</div>
+                    </div>
+
+                    <p style="margin:0 0 18px 0; color:#475569;">If this was you, authorize this device by clicking below. If it wasn't you, secure your account immediately.</p>
+
+                    <div style="text-align:center; margin-top:8px;">
+                      <a href="${authUrl}" style="display:inline-block; background:#1877F2; color:#fff; padding:10px 18px; border-radius:8px; text-decoration:none; font-weight:600;">Authorize This Device</a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 30px; background:#f8fafc; font-size:12px; color:#94a3b8;">
+                    <div>If you didn't try to sign in, please change your password and enable two-factor authentication.</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </div>
     `,
   };

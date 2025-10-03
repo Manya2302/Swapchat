@@ -1,3 +1,8 @@
+
+// Load .env into process.env for local development
+import dotenv from 'dotenv';
+dotenv.config();
+
 console.log('Starting server initialization...');
 
 import express, { Request, Response, NextFunction } from 'express';
@@ -150,11 +155,13 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   }
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port: PORT,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  const listenOptions: any = { port: PORT, host: "0.0.0.0" };
+  // reusePort isn't supported on some Windows builds / environments. Only enable it on non-Windows.
+  if (process.platform !== 'win32') {
+    listenOptions.reusePort = true;
+  }
+
+  server.listen(listenOptions, () => {
     console.log(`✓ Server running on port ${PORT}`);
   });
 })();

@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import OTP from '../models/OTP.js';
 import IPAuthorization from '../models/IPAuthorization.js';
 import { sendOTPEmail, sendIPAuthorizationEmail } from '../lib/emailService.js';
-import { encryptField } from '../lib/encryption.js';
+import { encryptField, decryptField } from '../lib/encryption.js';
 import { body, validationResult } from 'express-validator';
 
 const router = express.Router();
@@ -47,8 +47,20 @@ router.post('/send-otp',
       }
 
       const { email } = req.body;
-      
-      await OTP.deleteMany({ email: encryptField(email), verified: false });
+
+      // Prevent rapid duplicate sends: if there's a recent unverified OTP for this email (<=60s), don't create/send another.
+      const encryptedEmail = encryptField(email);
+      const lastUnverified = await OTP.findOne({ email: encryptedEmail, verified: false }).sort({ createdAt: -1 });
+      if (lastUnverified) {
+        const ageMs = Date.now() - new Date(lastUnverified.createdAt).getTime();
+        if (ageMs <= 60 * 1000) {
+          // Recent OTP already sent; return success to the client without resending.
+          return res.json({ message: 'OTP recently sent' });
+        }
+      }
+
+      // Remove older unverified OTPs before creating a new one
+      await OTP.deleteMany({ email: encryptedEmail, verified: false });
 
       const otp = crypto.randomInt(100000, 999999).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -89,23 +101,41 @@ router.post('/verify-otp',
 
       const { email, otp } = req.body;
 
-      const otpDoc = await OTP.findOne({
-        email: encryptField(email),
-        otp,
-        verified: false,
-      });
+      // Find candidate OTPs by otp value (encryption is non-deterministic so matching ciphertext may fail)
+      const candidates = await OTP.find({ otp, verified: false }).sort({ createdAt: -1 }).limit(5);
 
-      if (!otpDoc) {
+      // Try to find a candidate whose decrypted email matches the provided email
+      const now = new Date();
+      const graceMs = 2 * 60 * 1000; // 2 minute grace
+      const normalizedProvidedEmail = (email || '').toString().trim().toLowerCase();
+      let matched = null;
+      for (const c of candidates) {
+        let storedEmail;
+        try {
+          storedEmail = decryptField(c.email);
+        } catch (e) {
+          storedEmail = null;
+        }
+        const normalizedStoredEmail = storedEmail ? storedEmail.toString().trim().toLowerCase() : null;
+        if (normalizedStoredEmail === normalizedProvidedEmail) {
+          const expiresAt = c.expiresAt instanceof Date ? c.expiresAt : new Date(c.expiresAt);
+          if ((expiresAt.getTime() + graceMs) > now.getTime()) {
+            matched = c;
+            break;
+          } else {
+            // expired candidate; delete it
+            await OTP.deleteOne({ _id: c._id });
+            return res.status(400).json({ error: 'OTP expired' });
+          }
+        }
+      }
+
+      if (!matched) {
         return res.status(400).json({ error: 'Invalid or expired OTP' });
       }
 
-      if (new Date() > otpDoc.expiresAt) {
-        await OTP.deleteOne({ _id: otpDoc._id });
-        return res.status(400).json({ error: 'OTP expired' });
-      }
-
-      otpDoc.verified = true;
-      await otpDoc.save();
+      matched.verified = true;
+      await matched.save();
 
       res.json({ message: 'OTP verified successfully' });
     } catch (error) {
