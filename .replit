@@ -9,11 +9,15 @@ packages = ["mongodb"]
 [deployment]
 deploymentTarget = "vm"
 build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+run = ["bash", "-c", "mongod --dbpath /tmp/mongodb_data --bind_ip 127.0.0.1 --port 27017 --logpath /tmp/mongodb.log --fork && npm run start"]
 
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 37403
+externalPort = 4200
 
 [[ports]]
 localPort = 38951
@@ -54,24 +58,24 @@ args = "Start application"
 name = "MongoDB"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "mongod --dbpath /tmp/mongodb_data --bind_ip 127.0.0.1 --port 27017 --logpath /tmp/mongodb.log"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [agent]
 integrations = ["javascript_websocket:1.0.0"]

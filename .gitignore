@@ -6,3 +6,30 @@ vite.config.ts.*
 *.tar.gz
 .env
 .env.local
+
+# MongoDB
+/tmp/mongodb_data
+/tmp/mongodb.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.unused
