@@ -1,14 +1,26 @@
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport({
+const hasEmailConfig = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD;
+
+const transporter = hasEmailConfig ? nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE || 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
-});
+}) : null;
 
 export async function sendOTPEmail(email, otp) {
+  if (!hasEmailConfig) {
+    console.log('\n===========================================');
+    console.log('📧 DEVELOPMENT MODE - OTP EMAIL');
+    console.log('===========================================');
+    console.log(`To: ${email}`);
+    console.log(`OTP: ${otp}`);
+    console.log('===========================================\n');
+    return true;
+  }
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
@@ -38,6 +50,18 @@ export async function sendOTPEmail(email, otp) {
 }
 
 export async function sendIPAuthorizationEmail(email, username, ip, authUrl) {
+  if (!hasEmailConfig) {
+    console.log('\n===========================================');
+    console.log('📧 DEVELOPMENT MODE - IP AUTHORIZATION EMAIL');
+    console.log('===========================================');
+    console.log(`To: ${email}`);
+    console.log(`Username: ${username}`);
+    console.log(`IP: ${ip}`);
+    console.log(`Authorization URL: ${authUrl}`);
+    console.log('===========================================\n');
+    return true;
+  }
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
