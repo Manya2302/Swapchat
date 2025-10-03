@@ -41,12 +41,12 @@ Required environment variables (currently using development defaults):
 - `ENCRYPTION_MASTER_KEY` - Master key for AES field encryption (min 32 chars required)
 - `HCAPTCHA_SECRET_KEY` - Secret for hCaptcha verification (defaults to test key `0x0000000000000000000000000000000000000000`)
 
-**Email (optional, needed for OTP verification):**
-- `EMAIL_SERVICE` - SMTP service provider (e.g., 'gmail')
-- `EMAIL_USER` - Email sender address
-- `EMAIL_PASSWORD` - Email account password
+**Email (configured for OTP verification):**
+- `EMAIL_SERVICE` - SMTP service provider (✓ configured)
+- `EMAIL_USER` - Email sender address (✓ configured)
+- `EMAIL_PASSWORD` - Email account password/app password (✓ configured)
 
-**Note**: The application will run in development mode with default values. For production or full feature testing, configure these secrets in the Replit Secrets panel.
+**Note**: Email credentials are securely stored in Replit Secrets. OTP codes are now sent via email instead of being logged to the console.
 
 ### Running the Project
 
