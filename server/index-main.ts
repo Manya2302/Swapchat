@@ -27,6 +27,8 @@ interface AuthenticatedSocket extends Socket {
 const app = express();
 const server = createServer(app);
 
+app.set('trust proxy', true);
+
 const io = new Server(server, {
   cors: {
     origin: process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000',
