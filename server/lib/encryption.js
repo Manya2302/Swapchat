@@ -1,10 +1,14 @@
 import crypto from 'crypto';
 import CryptoJS from 'crypto-js';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_MASTER_KEY;
+const ENCRYPTION_KEY = process.env.ENCRYPTION_MASTER_KEY || 'development-encryption-key-change-in-production-minimum-32-chars';
 
-if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length < 32) {
+if (ENCRYPTION_KEY.length < 32) {
   throw new Error('ENCRYPTION_MASTER_KEY must be at least 32 characters');
+}
+
+if (!process.env.ENCRYPTION_MASTER_KEY && process.env.NODE_ENV === 'production') {
+  throw new Error('ENCRYPTION_MASTER_KEY must be set in production');
 }
 
 export function encryptField(text) {

@@ -1,3 +1,5 @@
+console.log('Starting server initialization...');
+
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -6,12 +8,16 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
+console.log('Basic imports loaded');
+
 import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
 import blockchainRoutes from './routes/blockchain.js';
 import { initializeBlockchain, addMessageBlock } from './lib/blockchain.js';
 import { authenticateSocket } from './middleware/auth.js';
 import { setupVite, serveStatic } from './vite.js';
+
+console.log('All imports loaded');
 
 const app = express();
 const server = createServer(app);
