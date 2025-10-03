@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import mongoose from 'mongoose';
 
 console.log('Basic imports loaded');
 
@@ -130,8 +131,12 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 
 (async () => {
   try {
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/swapchat';
+    await mongoose.connect(MONGODB_URI);
+    console.log('✓ MongoDB connected');
+    
     await initializeBlockchain();
-    console.log('✓ Database connected and blockchain initialized');
+    console.log('✓ Blockchain initialized');
   } catch (err) {
     console.error('Database initialization error:', err);
     process.exit(1);
