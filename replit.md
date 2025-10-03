@@ -8,47 +8,47 @@ The platform features a WhatsApp-like user interface with a unique "Swapchat" de
 
 ## Replit Setup
 
-### Initial Setup Complete (October 3, 2025)
-
-The project has been successfully configured to run in the Replit environment:
-
-1. **Development Workflow**: Configured to run `npm run dev` on port 5000 with webview output
-2. **Database**: PostgreSQL database has been created and schema pushed successfully
-3. **Vite Configuration**: Already configured with `allowedHosts: true` for Replit proxy compatibility
-4. **Server Configuration**: Express server binds to `0.0.0.0:5000` for frontend access
-5. **Deployment**: Configured for autoscale deployment with build and start scripts
-
-### Environment Secrets Configuration
-
-Database secrets configured:
-- `DATABASE_URL` ✓ (PostgreSQL connection - auto-configured by Replit)
-
-Optional secrets (have development fallbacks):
-- `JWT_SECRET` (defaults to 'default-secret-key-change-me' for development)
-- `ENCRYPTION_MASTER_KEY` (defaults to development key, min 32 chars)
-- `HCAPTCHA_SECRET_KEY` (needed for captcha verification on login)
-- `EMAIL_SERVICE`, `EMAIL_USER`, `EMAIL_PASSWORD` (needed for OTP emails)
-
-**Note**: The application will run in development mode with default values. For production or full feature testing, configure the optional secrets in the Secrets panel.
-
 ### GitHub Import Setup (October 3, 2025)
 
 **Project successfully imported and configured for Replit:**
 
-1. ✓ PostgreSQL database created and schema pushed
-2. ✓ Workflow configured: "Start application" runs `npm run dev` on port 5000
-3. ✓ Vite already configured with `allowedHosts: true` for Replit proxy
-4. ✓ Server binds to `0.0.0.0:5000` for proper frontend access
-5. ✓ Deployment configured for autoscale with build/start scripts
-6. ✓ Application running successfully - login page accessible
+The project has been configured to run in the Replit environment with MongoDB:
+
+1. ✓ **MongoDB Database**: Installed via Nix packages and running on localhost:27017
+2. ✓ **Workflows Configured**: 
+   - "MongoDB" workflow runs the MongoDB server in the background
+   - "Start application" workflow runs `npm run dev` on port 5000 with webview output
+3. ✓ **Vite Configuration**: Already configured with `allowedHosts: true` for Replit proxy compatibility
+4. ✓ **Server Configuration**: Express server binds to `0.0.0.0:5000` for frontend access
+5. ✓ **Dependencies**: nanoid package installed (required for vite.ts)
+6. ✓ **Application Running**: Login page accessible and functional
+
+### Environment Variables
+
+Required environment variables (currently using development defaults):
+
+**Database:**
+- `MONGODB_URI` - MongoDB connection string (defaults to `mongodb://localhost:27017/swapchat`)
+
+**Security (should be configured in Secrets for production):**
+- `JWT_SECRET` - Secret key for JWT token signing (min 32 chars recommended)
+- `ENCRYPTION_MASTER_KEY` - Master key for AES field encryption (min 32 chars required)
+- `HCAPTCHA_SECRET_KEY` - Secret for hCaptcha verification (defaults to test key `0x0000000000000000000000000000000000000000`)
+
+**Email (optional, needed for OTP verification):**
+- `EMAIL_SERVICE` - SMTP service provider (e.g., 'gmail')
+- `EMAIL_USER` - Email sender address
+- `EMAIL_PASSWORD` - Email account password
+
+**Note**: The application will run in development mode with default values. For production or full feature testing, configure these secrets in the Replit Secrets panel.
 
 ### Running the Project
 
-- **Development**: The workflow "Start application" runs automatically and starts the dev server
-- **Manual Start**: Use `npm run dev` to start the development server
+- **Development**: The workflows run automatically - MongoDB starts first, then the application server
+- **Manual Start**: Use `npm run dev` to start the development server (ensure MongoDB is running)
 - **Build**: Use `npm run build` to create a production build
 - **Production**: Use `npm run start` to run the production server
-- **Database Schema**: Use `npm run db:push` to sync schema changes to the database
+- **MongoDB**: The MongoDB workflow keeps the database running in the background
 
 ## User Preferences
 
@@ -114,17 +114,17 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Storage
 
-**Database**: PostgreSQL via Neon serverless (with WebSocket support for serverless environments).
+**Database**: MongoDB (running locally on Replit via Nix packages at localhost:27017).
 
-**ORM**: Drizzle ORM with schema-first approach, providing type-safe database operations.
+**ODM**: Mongoose for MongoDB with schema-based document modeling and validation.
 
-**Schema Design**:
+**Schema Design (Collections)**:
 - `users`: Stores user credentials, cryptographic keys, authorized IPs, verification status
 - `blocks`: Blockchain storage with encrypted message payloads
 - `otps`: One-time passwords for email verification (auto-expiring)
-- `ipAuthorizations`: IP-based access control with token verification
+- `ipauthorizations`: IP-based access control with token verification
 
-**Data Encryption**: Sensitive fields (username, email, phone, private keys, message content) are encrypted at rest using AES-GCM with a master encryption key.
+**Data Encryption**: Sensitive fields (username, email, phone, fullName, dateOfBirth, private keys, message content) are encrypted at rest using AES encryption with a master encryption key via Mongoose getter/setter hooks.
 
 **Key Management**: 
 - Each user has a public/private NaCl key pair for message encryption
@@ -167,16 +167,16 @@ Preferred communication style: Simple, everyday language.
 
 ### Database & Infrastructure
 
-**Neon Database**: Serverless PostgreSQL with WebSocket constructor for compatibility with serverless environments.
+**MongoDB**: NoSQL document database running locally via Nix packages on localhost:27017.
 
 **Environment Variables Required**:
-- `DATABASE_URL`: PostgreSQL connection string
+- `MONGODB_URI`: MongoDB connection string (defaults to `mongodb://localhost:27017/swapchat`)
 - `JWT_SECRET`: Secret key for JWT signing
 - `ENCRYPTION_MASTER_KEY`: Master key for field encryption (minimum 32 characters)
 - `EMAIL_SERVICE`: SMTP service provider
 - `EMAIL_USER`: Email sender address
 - `EMAIL_PASSWORD`: Email account password
-- `REPLIT_DEV_DOMAIN`: Development domain for CORS
+- `REPLIT_DEV_DOMAIN`: Development domain for CORS (auto-configured by Replit)
 
 ### Key Libraries
 
@@ -191,9 +191,14 @@ Preferred communication style: Simple, everyday language.
 - `class-variance-authority`: Component variant management
 - `lucide-react`: Icon library
 
+**Database & Backend**:
+- `mongoose`: MongoDB ODM for schema-based modeling
+- `socket.io`: Real-time WebSocket communication
+- `express`: Web application framework
+
 **Development Tools**:
-- `drizzle-kit`: Database migrations and schema management
 - `vite`: Build tool and dev server
+- `tsx`: TypeScript execution for development
 - `esbuild`: Server-side bundling for production
 
 **Validation**:
