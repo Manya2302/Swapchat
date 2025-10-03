@@ -23,6 +23,7 @@ The project has been configured to run in the Replit environment with MongoDB:
 5. ✓ **Code Cleanup**: Unused TypeScript/Drizzle/PostgreSQL files renamed to *.bak to prevent compilation errors
 6. ✓ **Application Running**: Login page fully functional and accessible
 7. ✓ **Environment Configuration**: Updated .env to use local MongoDB instead of MongoDB Atlas
+8. ✓ **Email Service Fixed**: OTP emails now being sent to Gmail successfully (fixed runtime configuration loading)
 
 **Technical Notes:**
 - The project had duplicate implementations (MongoDB/Mongoose .js files and PostgreSQL/Drizzle .ts files)
@@ -30,6 +31,7 @@ The project has been configured to run in the Replit environment with MongoDB:
 - Unused TypeScript files were renamed to *.bak to prevent compilation errors
 - The server entry point (server/index.ts) loads server/index-main.ts which uses the .js route files
 - Updated MONGODB_URI in .env to point to local MongoDB: `mongodb://localhost:27017/swapchat`
+- Fixed email service to check configuration at runtime instead of module load time, ensuring OTPs are sent to Gmail
 
 ### Environment Variables
 

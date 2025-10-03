@@ -1,33 +1,40 @@
 import nodemailer from 'nodemailer';
 
-// Prefer explicit SMTP settings (recommended). Fall back to simple service+user+pass if provided.
-const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
-const hasEmailConfig = hasSmtpConfig || (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD);
-
-let transporter = null;
-if (hasSmtpConfig) {
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-} else if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
-  transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  });
+function getTransporter() {
+  const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+  const hasEmailConfig = hasSmtpConfig || (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD);
+  
+  if (!hasEmailConfig) {
+    return null;
+  }
+  
+  if (hasSmtpConfig) {
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+  } else if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+    return nodemailer.createTransport({
+      service: process.env.EMAIL_SERVICE || 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+  }
+  
+  return null;
 }
 
 export async function sendOTPEmail(email, otp) {
-  if (!hasEmailConfig) {
-    // Development mode: do not print OTP values to console to avoid accidental leakage.
+  const transporter = getTransporter();
+  
+  if (!transporter) {
     console.log(`📧 DEVELOPMENT MODE - OTP would be sent to ${email} (SMTP not configured)`);
     return true;
   }
@@ -81,6 +88,7 @@ export async function sendOTPEmail(email, otp) {
 
   try {
     await transporter.sendMail(mailOptions);
+    console.log(`✓ OTP email sent successfully to ${email}`);
     return true;
   } catch (error) {
     console.error('Email send error:', error);
@@ -89,7 +97,9 @@ export async function sendOTPEmail(email, otp) {
 }
 
 export async function sendIPAuthorizationEmail(email, username, ip, authUrl) {
-  if (!hasEmailConfig) {
+  const transporter = getTransporter();
+  
+  if (!transporter) {
     console.log('\n===========================================');
     console.log('📧 DEVELOPMENT MODE - IP AUTHORIZATION EMAIL');
     console.log('===========================================');
@@ -148,6 +158,7 @@ export async function sendIPAuthorizationEmail(email, username, ip, authUrl) {
 
   try {
     await transporter.sendMail(mailOptions);
+    console.log(`✓ IP Authorization email sent successfully to ${email}`);
     return true;
   } catch (error) {
     console.error('IP Authorization email error:', error);
