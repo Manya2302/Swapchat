@@ -1,13 +1,16 @@
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import ws from 'ws';
-import * as schema from '../shared/schema.js';
+import mongoose from 'mongoose';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL must be set');
+const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL || 'mongodb://localhost:27017/swapchat';
+
+if (!MONGODB_URI) {
+  throw new Error('MONGODB_URI or DATABASE_URL must be set');
 }
 
-neonConfig.webSocketConstructor = ws;
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('✓ MongoDB connected'))
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+export const db = mongoose.connection;

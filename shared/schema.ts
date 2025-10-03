@@ -1,70 +1,66 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer, jsonb } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  email: text("email").notNull(),
-  phone: text("phone").notNull(),
-  fullName: text("full_name").notNull(),
-  dateOfBirth: text("date_of_birth").notNull(),
-  password: text("password").notNull(),
-  publicKey: text("public_key").notNull(),
-  authorizedIPs: jsonb("authorized_ips").$type<Array<{
+// Mongoose schemas are defined in server/models/
+// These are TypeScript types and Zod schemas for validation
+
+export interface User {
+  _id?: string;
+  username: string;
+  email: string;
+  phone: string;
+  fullName: string;
+  dateOfBirth: string;
+  password: string;
+  publicKey: string;
+  authorizedIPs: Array<{
     ip: string;
     authorizedAt: string;
     userAgent: string;
-  }>>().default([]),
-  isVerified: boolean("is_verified").default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+  }>;
+  isVerified: boolean;
+  createdAt: Date;
+}
 
-export const blocks = pgTable("blocks", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  index: integer("index").notNull(),
-  timestamp: text("timestamp").notNull(),
-  from: text("from").notNull(),
-  to: text("to").notNull(),
-  payload: text("payload").notNull(),
-  prevHash: text("prev_hash").notNull(),
-  hash: text("hash").notNull().unique(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface Block {
+  _id?: string;
+  index: number;
+  timestamp: string;
+  from: string;
+  to: string;
+  payload: string;
+  prevHash: string;
+  hash: string;
+  createdAt: Date;
+}
 
-export const otps = pgTable("otps", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: text("email").notNull(),
-  otp: text("otp").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  verified: boolean("verified").default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface OTP {
+  _id?: string;
+  email: string;
+  otp: string;
+  expiresAt: Date;
+  verified: boolean;
+  createdAt: Date;
+}
 
-export const ipAuthorizations = pgTable("ip_authorizations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull(),
-  ip: text("ip").notNull(),
-  token: text("token").notNull(),
-  userAgent: text("user_agent"),
-  authorized: boolean("authorized").default(false),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface IPAuthorization {
+  _id?: string;
+  username: string;
+  ip: string;
+  token: string;
+  userAgent?: string;
+  authorized: boolean;
+  expiresAt: Date;
+  createdAt: Date;
+}
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  email: true,
-  phone: true,
-  fullName: true,
-  dateOfBirth: true,
-  publicKey: true,
+export const insertUserSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().min(1),
+  fullName: z.string().min(1),
+  dateOfBirth: z.string().min(1),
+  publicKey: z.string().min(1),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-export type Block = typeof blocks.$inferSelect;
-export type OTP = typeof otps.$inferSelect;
-export type IPAuthorization = typeof ipAuthorizations.$inferSelect;
