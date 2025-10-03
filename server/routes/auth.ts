@@ -182,7 +182,6 @@ router.post('/login',
   [
     body('username').trim().notEmpty(),
     body('password').notEmpty(),
-    body('captchaToken').notEmpty(),
   ],
   async (req: any, res: any) => {
     try {
@@ -191,14 +190,9 @@ router.post('/login',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { username, password, captchaToken } = req.body;
+      const { username, password } = req.body;
       const clientIP = req.ip || req.socket.remoteAddress;
       const userAgent = req.headers['user-agent'];
-
-      const captchaValid = await verifyCaptcha(captchaToken);
-      if (!captchaValid) {
-        return res.status(400).json({ error: 'Invalid CAPTCHA' });
-      }
 
       const user = await findUserByUsername(username);
 

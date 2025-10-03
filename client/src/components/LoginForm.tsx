@@ -1,11 +1,10 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Mail } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import HCaptcha from "@hcaptcha/react-hcaptcha";
 
 interface LoginFormProps {
   onSuccess: (token: string, user: any) => void;
@@ -17,23 +16,9 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [ipAuthRequired, setIpAuthRequired] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const captchaRef = useRef<HCaptcha>(null);
-
-  const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || "10000000-ffff-ffff-ffff-000000000001";
-
-  const handleCaptchaVerify = (token: string) => {
-    setCaptchaToken(token);
-    setError("");
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!captchaToken) {
-      setError("Please complete the CAPTCHA");
-      return;
-    }
 
     setIsLoading(true);
     setError("");
@@ -43,7 +28,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       const response = await apiRequest('POST', '/api/auth/login', {
         username,
         password,
-        captchaToken,
       });
 
       const data = await response.json();
@@ -59,8 +43,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       } else {
         setError(err.message || "Invalid credentials");
       }
-      captchaRef.current?.resetCaptcha();
-      setCaptchaToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -115,21 +97,10 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         />
       </div>
 
-      <div className="flex justify-center" data-testid="captcha-container">
-        <HCaptcha
-          ref={captchaRef}
-          sitekey={HCAPTCHA_SITE_KEY}
-          onVerify={handleCaptchaVerify}
-          onExpire={() => setCaptchaToken(null)}
-          onError={() => setError("CAPTCHA error. Please try again.")}
-          theme="dark"
-        />
-      </div>
-
       <Button
         type="submit"
         className="w-full"
-        disabled={isLoading || !captchaToken}
+        disabled={isLoading}
         data-testid="button-login"
       >
         {isLoading ? (
