@@ -6,6 +6,39 @@ Swapchat is a secure messaging application that uses blockchain technology to st
 
 The platform features a WhatsApp-like user interface with a unique "Swapchat" design theme, real-time communication via WebSockets, and a complete blockchain ledger viewer for auditing message history.
 
+## Replit Setup
+
+### Initial Setup Complete (October 3, 2025)
+
+The project has been successfully configured to run in the Replit environment:
+
+1. **Development Workflow**: Configured to run `npm run dev` on port 5000 with webview output
+2. **Database**: PostgreSQL database has been created and schema pushed successfully
+3. **Vite Configuration**: Already configured with `allowedHosts: true` for Replit proxy compatibility
+4. **Server Configuration**: Express server binds to `0.0.0.0:5000` for frontend access
+5. **Deployment**: Configured for autoscale deployment with build and start scripts
+
+### Required Environment Secrets
+
+The following secrets need to be added in Replit's Secrets panel for full functionality:
+
+- `DATABASE_URL` ✓ (Already configured)
+- `JWT_SECRET` - Secret key for JWT signing (required for authentication)
+- `ENCRYPTION_MASTER_KEY` - Master key for field encryption (minimum 32 characters, required for data encryption)
+- `EMAIL_SERVICE` - SMTP service provider (e.g., "gmail") (optional for email features)
+- `EMAIL_USER` - Email sender address (optional for email features)
+- `EMAIL_PASSWORD` - Email account password (optional for email features)
+
+Note: The application can run without email configuration, but OTP verification features will not work.
+
+### Running the Project
+
+- **Development**: The workflow "Start application" runs automatically and starts the dev server
+- **Manual Start**: Use `npm run dev` to start the development server
+- **Build**: Use `npm run build` to create a production build
+- **Production**: Use `npm run start` to run the production server
+- **Database Schema**: Use `npm run db:push` to sync schema changes to the database
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
