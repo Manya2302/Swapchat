@@ -12,7 +12,6 @@ export async function createUser(userData: {
   dateOfBirth: string;
   password: string;
   publicKey: string;
-  privateKey: string;
   isVerified?: boolean;
 }) {
   const hashedPassword = await bcrypt.hash(userData.password, 12);
@@ -25,7 +24,6 @@ export async function createUser(userData: {
     dateOfBirth: encryptField(userData.dateOfBirth),
     password: hashedPassword,
     publicKey: userData.publicKey,
-    privateKey: encryptField(userData.privateKey),
     isVerified: userData.isVerified || false,
   }).returning();
   
@@ -41,7 +39,6 @@ function decryptUserFields(user: any) {
     phone: decryptField(user.phone) || user.phone,
     fullName: decryptField(user.fullName) || user.fullName,
     dateOfBirth: decryptField(user.dateOfBirth) || user.dateOfBirth,
-    privateKey: decryptField(user.privateKey) || user.privateKey,
   };
 }
 

@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { createUser, findUserByUsername, getAllUsers, comparePassword, updateUserAuthorizedIPs } from '../lib/db/users.js';
 import { deleteUnverifiedOTPs, createOTP, findValidOTP, findVerifiedOTP, markOTPVerified, deleteOTPsByEmail } from '../lib/db/otps.js';
 import { createIPAuthorization, findIPAuthByToken, authorizeIP } from '../lib/db/ipAuthorizations.js';
+// @ts-ignore
 import { sendOTPEmail, sendIPAuthorizationEmail } from '../lib/emailService.js';
 import { body, validationResult } from 'express-validator';
 
@@ -38,7 +39,7 @@ router.post('/send-otp',
     body('phone').trim().matches(/^[0-9+\-() ]+$/),
     body('dateOfBirth').isISO8601(),
   ],
-  async (req, res) => {
+  async (req: any, res: any) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -73,7 +74,7 @@ router.post('/verify-otp',
     body('email').isEmail().normalizeEmail(),
     body('otp').isLength({ min: 6, max: 6 }),
   ],
-  async (req, res) => {
+  async (req: any, res: any) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -107,16 +108,15 @@ router.post('/register',
     body('phone').trim().matches(/^[0-9+\-() ]+$/),
     body('dateOfBirth').isISO8601(),
     body('publicKey').notEmpty(),
-    body('privateKey').notEmpty(),
   ],
-  async (req, res) => {
+  async (req: any, res: any) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { username, password, email, fullName, phone, dateOfBirth, publicKey, privateKey } = req.body;
+      const { username, password, email, fullName, phone, dateOfBirth, publicKey } = req.body;
 
       const otpDoc = await findVerifiedOTP(email);
 
@@ -139,7 +139,6 @@ router.post('/register',
         phone,
         dateOfBirth,
         publicKey,
-        privateKey,
         isVerified: true,
       });
 
@@ -157,7 +156,6 @@ router.post('/register',
           id: user.id,
           username: user.username,
           publicKey: user.publicKey,
-          privateKey: user.privateKey,
         },
       });
     } catch (error) {
@@ -186,7 +184,7 @@ router.post('/login',
     body('password').notEmpty(),
     body('captchaToken').notEmpty(),
   ],
-  async (req, res) => {
+  async (req: any, res: any) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -250,7 +248,6 @@ router.post('/login',
           id: user.id,
           username: user.username,
           publicKey: user.publicKey,
-          privateKey: user.privateKey,
         },
       });
     } catch (error) {

@@ -12,7 +12,6 @@ export const users = pgTable("users", {
   dateOfBirth: text("date_of_birth").notNull(),
   password: text("password").notNull(),
   publicKey: text("public_key").notNull(),
-  privateKey: text("private_key").notNull(),
   authorizedIPs: jsonb("authorized_ips").$type<Array<{
     ip: string;
     authorizedAt: string;
@@ -62,7 +61,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
   fullName: true,
   dateOfBirth: true,
   publicKey: true,
-  privateKey: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

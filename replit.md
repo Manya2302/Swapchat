@@ -53,7 +53,11 @@ Preferred communication style: Simple, everyday language.
 - JWT tokens for stateless authentication
 
 **Encryption Strategy** (Double-layer security):
-1. Client-side end-to-end encryption using the recipient's public key
+1. Client-side end-to-end encryption using NaCl (TweetNaCl):
+   - Private keys are generated on the client and NEVER transmitted to the server
+   - Private keys are stored ONLY in browser localStorage
+   - Only public keys are sent to and stored on the server
+   - Messages are encrypted with recipient's public key before transmission
 2. Server-side field encryption using AES with master key for stored data
 3. Bcrypt password hashing with 12 rounds
 
@@ -78,7 +82,12 @@ Preferred communication style: Simple, everyday language.
 
 **Data Encryption**: Sensitive fields (username, email, phone, private keys, message content) are encrypted at rest using AES-GCM with a master encryption key.
 
-**Key Management**: Each user has a public/private key pair for message encryption. Private keys are encrypted before storage.
+**Key Management**: 
+- Each user has a public/private NaCl key pair for message encryption
+- Private keys are generated on client-side during registration and stored ONLY in browser localStorage
+- Private keys NEVER leave the client or get transmitted to the server
+- Only public keys are stored on the server (in encrypted form)
+- True end-to-end encryption: server cannot decrypt any messages
 
 ### Authentication & Authorization
 

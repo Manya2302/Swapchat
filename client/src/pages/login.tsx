@@ -1,18 +1,9 @@
-import LoginPage from "@/components/LoginPage";
-import { useLocation } from "wouter";
+import AuthPage from "@/components/AuthPage";
 
-export default function Login() {
-  const [, setLocation] = useLocation();
+interface LoginProps {
+  onAuthenticated: (token: string, user: any) => void;
+}
 
-  const handleLogin = (username: string, password: string) => {
-    console.log("Login:", username, password);
-    setLocation("/");
-  };
-
-  const handleRegister = (username: string, password: string) => {
-    console.log("Register:", username, password);
-    setLocation("/");
-  };
-
-  return <LoginPage onLogin={handleLogin} onRegister={handleRegister} />;
+export default function Login({ onAuthenticated }: LoginProps) {
+  return <AuthPage onAuthenticated={onAuthenticated} />;
 }
