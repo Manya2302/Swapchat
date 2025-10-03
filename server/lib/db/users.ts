@@ -2,6 +2,7 @@ import { db } from '../../db.js';
 import { users } from '../../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
+import { encryptField, decryptField } from '../encryption.js';
 
 export async function createUser(userData: {
   username: string;
@@ -12,29 +13,51 @@ export async function createUser(userData: {
   password: string;
   publicKey: string;
   privateKey: string;
+  isVerified?: boolean;
 }) {
   const hashedPassword = await bcrypt.hash(userData.password, 12);
   
   const [user] = await db.insert(users).values({
-    ...userData,
+    username: encryptField(userData.username),
+    email: encryptField(userData.email),
+    phone: encryptField(userData.phone),
+    fullName: encryptField(userData.fullName),
+    dateOfBirth: encryptField(userData.dateOfBirth),
     password: hashedPassword,
+    publicKey: userData.publicKey,
+    privateKey: encryptField(userData.privateKey),
+    isVerified: userData.isVerified || false,
   }).returning();
   
-  return user;
+  return decryptUserFields(user);
+}
+
+function decryptUserFields(user: any) {
+  if (!user) return null;
+  return {
+    ...user,
+    username: decryptField(user.username) || user.username,
+    email: decryptField(user.email) || user.email,
+    phone: decryptField(user.phone) || user.phone,
+    fullName: decryptField(user.fullName) || user.fullName,
+    dateOfBirth: decryptField(user.dateOfBirth) || user.dateOfBirth,
+    privateKey: decryptField(user.privateKey) || user.privateKey,
+  };
 }
 
 export async function findUserByUsername(username: string) {
-  const [user] = await db.select().from(users).where(eq(users.username, username));
-  return user;
+  const allUsers = await db.select().from(users);
+  return allUsers.map(decryptUserFields).find(u => u.username === username);
 }
 
 export async function findUserById(id: string) {
   const [user] = await db.select().from(users).where(eq(users.id, id));
-  return user;
+  return decryptUserFields(user);
 }
 
 export async function getAllUsers() {
-  return await db.select().from(users);
+  const allUsers = await db.select().from(users);
+  return allUsers.map(decryptUserFields);
 }
 
 export async function comparePassword(plainPassword: string, hashedPassword: string) {
@@ -64,5 +87,11 @@ export async function getUsersExcludingId(excludeId: string) {
     publicKey: users.publicKey,
   }).from(users);
   
-  return allUsers.filter(user => user.id !== excludeId);
+  return allUsers
+    .map(u => ({
+      id: u.id,
+      username: decryptField(u.username) || u.username,
+      publicKey: u.publicKey,
+    }))
+    .filter(user => user.id !== excludeId);
 }

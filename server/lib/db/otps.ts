@@ -1,19 +1,23 @@
 import { db } from '../../db.js';
 import { otps } from '../../../shared/schema.js';
 import { eq, and, lt, gt } from 'drizzle-orm';
+import { encryptField, decryptField } from '../encryption.js';
 
 export async function deleteUnverifiedOTPs(email: string) {
-  await db.delete(otps).where(
-    and(
-      eq(otps.email, email),
-      eq(otps.verified, false)
-    )
+  const encryptedEmail = encryptField(email);
+  const allOtps = await db.select().from(otps);
+  const toDelete = allOtps.filter(otp => 
+    decryptField(otp.email) === email && !otp.verified
   );
+  
+  for (const otp of toDelete) {
+    await db.delete(otps).where(eq(otps.id, otp.id));
+  }
 }
 
 export async function createOTP(email: string, otp: string, expiresAt: Date) {
   const [otpRecord] = await db.insert(otps).values({
-    email,
+    email: encryptField(email),
     otp,
     expiresAt,
   }).returning();
@@ -23,23 +27,37 @@ export async function createOTP(email: string, otp: string, expiresAt: Date) {
 
 export async function findValidOTP(email: string, otpCode: string) {
   const now = new Date();
-  const [otpRecord] = await db.select().from(otps)
-    .where(
-      and(
-        eq(otps.email, email),
-        eq(otps.otp, otpCode),
-        eq(otps.verified, false),
-        gt(otps.expiresAt, now)
-      )
-    );
+  const allOtps = await db.select().from(otps);
   
-  return otpRecord;
+  const validOtp = allOtps.find(otp => {
+    const decryptedEmail = decryptField(otp.email);
+    return decryptedEmail === email &&
+           otp.otp === otpCode &&
+           !otp.verified &&
+           otp.expiresAt > now;
+  });
+  
+  return validOtp;
+}
+
+export async function findVerifiedOTP(email: string) {
+  const allOtps = await db.select().from(otps);
+  return allOtps.find(otp => decryptField(otp.email) === email && otp.verified);
 }
 
 export async function markOTPVerified(id: string) {
   await db.update(otps)
     .set({ verified: true })
     .where(eq(otps.id, id));
+}
+
+export async function deleteOTPsByEmail(email: string) {
+  const allOtps = await db.select().from(otps);
+  const toDelete = allOtps.filter(otp => decryptField(otp.email) === email);
+  
+  for (const otp of toDelete) {
+    await db.delete(otps).where(eq(otps.id, otp.id));
+  }
 }
 
 export async function deleteExpiredOTPs() {

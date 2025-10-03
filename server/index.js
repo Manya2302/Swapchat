@@ -1,7 +1,6 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import mongoose from 'mongoose';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
@@ -43,20 +42,6 @@ app.use('/api/', limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(async () => {
-  console.log('✓ MongoDB connected');
-  await initializeBlockchain();
-  console.log('✓ Blockchain initialized');
-})
-.catch(err => {
-  console.error('MongoDB connection error:', err);
-  process.exit(1);
-});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
@@ -127,6 +112,14 @@ app.use((err, req, res, next) => {
 });
 
 (async () => {
+  try {
+    await initializeBlockchain();
+    console.log('✓ Database connected and blockchain initialized');
+  } catch (err) {
+    console.error('Database initialization error:', err);
+    process.exit(1);
+  }
+
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
