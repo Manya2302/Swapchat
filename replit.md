@@ -8,30 +8,31 @@ The platform features a WhatsApp-like user interface with a unique "Swapchat" de
 
 ## Replit Setup
 
-### GitHub Import Setup (October 3, 2025)
+### GitHub Import Setup (October 4, 2025)
 
 **Project successfully imported and configured for Replit:**
 
 The project has been configured to run in the Replit environment with MongoDB:
 
-1. ✓ **MongoDB Database**: MongoDB 7.0.16 running locally on localhost:27017 with data stored in /tmp/mongodb_data
+1. ✓ **MongoDB Database**: MongoDB 7.0.16 running locally on localhost:27017 with data stored in /home/runner/workspace/data/db
 2. ✓ **Workflows Configured**: 
-   - "MongoDB" workflow runs the MongoDB server in the background (console output)
+   - "MongoDB Server" workflow runs the MongoDB server in the background (console output)
    - "Start application" workflow runs `npm run dev` on port 5000 (webview output)
 3. ✓ **Vite Configuration**: Already configured with `allowedHosts: true` for Replit proxy compatibility (server/vite.ts line 26)
 4. ✓ **Server Configuration**: Express server binds to `0.0.0.0:5000` for frontend access, backend on localhost
 5. ✓ **Code Cleanup**: Unused TypeScript/Drizzle/PostgreSQL files renamed to *.bak to prevent compilation errors
-6. ✓ **Application Running**: Login page fully functional and accessible
-7. ✓ **Environment Configuration**: Updated .env to use local MongoDB instead of MongoDB Atlas
-8. ✓ **Email Service Fixed**: OTP emails now being sent to Gmail successfully (fixed runtime configuration loading)
+6. ✓ **Application Running**: Server started successfully with blockchain initialized
+7. ✓ **Environment Configuration**: Using local MongoDB at mongodb://localhost:27017/swapchat
+8. ✓ **Deployment Configured**: VM deployment with MongoDB and application server running together
 
 **Technical Notes:**
 - The project had duplicate implementations (MongoDB/Mongoose .js files and PostgreSQL/Drizzle .ts files)
 - Only the MongoDB/Mongoose implementation is active and being used
-- Unused TypeScript files were renamed to *.bak to prevent compilation errors
+- Unused TypeScript files (.ts) were renamed to *.bak to prevent compilation errors during tsx execution
 - The server entry point (server/index.ts) loads server/index-main.ts which uses the .js route files
-- Updated MONGODB_URI in .env to point to local MongoDB: `mongodb://localhost:27017/swapchat`
-- Fixed email service to check configuration at runtime instead of module load time, ensuring OTPs are sent to Gmail
+- MongoDB data directory: /home/runner/workspace/data/db
+- Genesis block automatically created on first run
+- Dependencies installed via npm, all packages up to date
 
 ### Environment Variables
 
