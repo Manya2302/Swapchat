@@ -236,24 +236,10 @@ router.post('/register',
   }
 );
 
-async function verifyCaptcha(token) {
-  const response = await fetch('https://hcaptcha.com/siteverify', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: `response=${token}&secret=${process.env.HCAPTCHA_SECRET_KEY}`,
-  });
-  
-  const data = await response.json();
-  return data.success;
-}
-
 router.post('/login',
   [
     body('username').trim().notEmpty(),
     body('password').notEmpty(),
-    body('captchaToken').notEmpty(),
   ],
   async (req, res) => {
     try {
@@ -262,14 +248,9 @@ router.post('/login',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { username, password, captchaToken } = req.body;
+      const { username, password } = req.body;
       const clientIP = req.ip || req.connection.remoteAddress;
       const userAgent = req.headers['user-agent'];
-
-      const captchaValid = await verifyCaptcha(captchaToken);
-      if (!captchaValid) {
-        return res.status(400).json({ error: 'Invalid CAPTCHA' });
-      }
 
       const allUsers = await User.find({});
       const user = allUsers.find(u => u.username === username);
@@ -402,6 +383,114 @@ router.get('/authorize-ip', async (req, res) => {
     res.status(500).send('<h1>Server error</h1>');
   }
 });
+
+router.post('/forgot-password',
+  body('email').isEmail().normalizeEmail(),
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { email } = req.body;
+
+      const allUsers = await User.find({});
+      const user = allUsers.find(u => u.email === email);
+
+      if (!user) {
+        return res.json({ message: 'If an account exists with this email, you will receive a password reset code.' });
+      }
+
+      const encryptedEmail = encryptField(email);
+      await OTP.deleteMany({ email: encryptedEmail, verified: false });
+
+      const otp = crypto.randomInt(100000, 999999).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      const otpDoc = new OTP({
+        email,
+        otp,
+        expiresAt,
+      });
+
+      await otpDoc.save();
+      await sendOTPEmail(email, otp);
+
+      res.json({ message: 'If an account exists with this email, you will receive a password reset code.' });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  }
+);
+
+router.post('/reset-password',
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('otp').isLength({ min: 6, max: 6 }),
+    body('newPassword').isLength({ min: 6 }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { email, otp, newPassword } = req.body;
+
+      const candidates = await OTP.find({ otp, verified: false }).sort({ createdAt: -1 }).limit(5).lean();
+
+      const now = new Date();
+      const graceMs = 2 * 60 * 1000;
+      const normalizedProvidedEmail = (email || '').toString().trim().toLowerCase();
+      
+      let matched = null;
+      for (const c of candidates) {
+        let storedEmail;
+        try {
+          storedEmail = decryptField(c.email);
+        } catch (e) {
+          storedEmail = null;
+        }
+        const normalizedStoredEmail = storedEmail ? storedEmail.toString().trim().toLowerCase() : null;
+        
+        if (normalizedStoredEmail === normalizedProvidedEmail) {
+          const expiresAt = c.expiresAt instanceof Date ? c.expiresAt : new Date(c.expiresAt);
+          if ((expiresAt.getTime() + graceMs) > now.getTime()) {
+            matched = c;
+            break;
+          } else {
+            await OTP.deleteOne({ _id: c._id });
+            return res.status(400).json({ error: 'OTP expired' });
+          }
+        }
+      }
+
+      if (!matched) {
+        return res.status(400).json({ error: 'Invalid or expired OTP' });
+      }
+
+      const allUsers = await User.find({});
+      const user = allUsers.find(u => u.email === email);
+
+      if (!user) {
+        return res.status(400).json({ error: 'User not found' });
+      }
+
+      user.password = newPassword;
+      await user.save();
+
+      await OTP.deleteOne({ _id: matched._id });
+
+      res.json({ message: 'Password reset successfully' });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  }
+);
 
 router.post('/logout', (req, res) => {
   res.clearCookie('token');
