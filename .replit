@@ -48,22 +48,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "MongoDB"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Start application"
-
-[[workflows.workflow]]
-name = "MongoDB"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "mongod --dbpath /tmp/mongodb_data --bind_ip 127.0.0.1 --port 27017 --logpath /tmp/mongodb.log"
 
 [[workflows.workflow]]
 name = "Start application"
