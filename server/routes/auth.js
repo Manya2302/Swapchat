@@ -168,10 +168,23 @@ router.post('/register',
 
       const { username, password, email, fullName, phone, dateOfBirth, publicKey, privateKey } = req.body;
 
-      const otpDoc = await OTP.findOne({
-        email: encryptField(email),
-        verified: true,
-      });
+      // Find verified OTPs and check if any match the provided email
+      const verifiedOTPs = await OTP.find({ verified: true }).lean();
+      const normalizedEmail = email.trim().toLowerCase();
+      
+      let otpDoc = null;
+      for (const otp of verifiedOTPs) {
+        let storedEmail;
+        try {
+          storedEmail = decryptField(otp.email);
+        } catch (e) {
+          storedEmail = null;
+        }
+        if (storedEmail && storedEmail.trim().toLowerCase() === normalizedEmail) {
+          otpDoc = otp;
+          break;
+        }
+      }
 
       if (!otpDoc) {
         return res.status(400).json({ error: 'Email not verified' });
@@ -198,7 +211,8 @@ router.post('/register',
 
       await user.save();
 
-      await OTP.deleteMany({ email: encryptField(email) });
+      // Delete the verified OTP using its ID
+      await OTP.deleteOne({ _id: otpDoc._id });
 
       const token = jwt.sign(
         { userId: user._id, username: user.username },
