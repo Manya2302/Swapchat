@@ -150,7 +150,7 @@ export default function Home({ onLogout }: HomeProps) {
     };
 
     loadMessages();
-  }, [activeContactId, blockchain, contacts]);
+  }, [activeContactId, blockchain.length]);
 
   const decryptMessage = async (encryptedPayload: string, privateKeyBase64: string): Promise<string> => {
     try {
