@@ -109,6 +109,7 @@ export default function RegistrationForm({ onSuccess }: RegistrationFormProps) {
         phone: formData.phone,
         dateOfBirth: formData.dateOfBirth,
         publicKey,
+        privateKey,
       });
 
       const data = await response.json();
