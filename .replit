@@ -7,9 +7,9 @@ channel = "stable-25_05"
 packages = ["mongodb"]
 
 [deployment]
-deploymentTarget = "vm"
+deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = ["bash", "-c", "mongod --dbpath /tmp/mongodb_data --bind_ip 127.0.0.1 --port 27017 --logpath /tmp/mongodb.log --fork && npm run start"]
+run = ["npm", "run", "start"]
 
 [[ports]]
 localPort = 5000
