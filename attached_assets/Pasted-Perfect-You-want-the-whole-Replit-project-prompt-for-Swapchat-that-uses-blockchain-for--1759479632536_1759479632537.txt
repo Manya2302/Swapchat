@@ -1,0 +1,216 @@
+Perfect 👍 You want the **whole Replit project prompt** for **Swapchat** that uses **blockchain for sending/receiving messages** (not just logging).
+Below is the **full prompt you can paste into Replit’s project setup or README** — it describes the entire system with **Node.js + Socket.IO + Blockchain + React UI**.
+
+---
+
+# 🚀 Replit Prompt — **Swapchat (Blockchain Messenger)**
+
+**Project name:** Swapchat
+**Pitch:** A WhatsApp-like messenger with a unique UI theme called *Swapchat*. Unlike regular messengers, each message is stored and transmitted as a **block in a blockchain**. Messages are encrypted end-to-end, double-wrapped by the server, and validated with blockchain integrity before being displayed.
+
+---
+
+## 🛠 Tech Stack
+
+* **Frontend:** React + TailwindCSS
+* **Backend:** Node.js + Express + Socket.IO
+* **Blockchain:** Custom lightweight blockchain (hash-linked messages)
+* **Encryption:** TweetNaCl (client-side E2E), AES-GCM (server wrap)
+* **Database:** MongoDB / Replit DB (optional, for users)
+
+---
+
+## 🔑 Features
+
+* 🔐 **End-to-End Encryption:** Messages encrypted with recipient public key.
+* 🔒 **Double Security:** Server wraps payload before storing/transmitting.
+* ⛓ **Blockchain Messaging:**
+
+  * Each message is a block (`index, timestamp, from, to, payload, prevHash, hash`).
+  * Chain ensures immutability & tamper-proof delivery.
+* 📡 **Real-time chat:** Built with Socket.IO.
+* 🧾 **Ledger/Audit:** Blockchain can be exported or viewed in admin panel.
+* 🎨 **Unique Swapchat UI:** Dark gradient theme, frosted glass chat bubbles, animations on send/deliver.
+
+---
+
+## 📂 Folder Structure
+
+```
+/swapchat
+  /client
+    package.json
+    src/
+      App.jsx
+      components/
+        ChatWindow.jsx
+        MessageBubble.jsx
+        Login.jsx
+      lib/
+        crypto.js          # encryption helpers
+      styles/
+        tailwind.css
+  /server
+    package.json
+    index.js              # main server with Socket.IO
+    blockchainChat.js     # blockchain module
+    lib/
+      cryptoServer.js     # server-side wrapping
+  README.md
+```
+
+---
+
+## ⚙️ Blockchain Messaging Flow
+
+1. **Sender:**
+
+   * Encrypts message with recipient’s public key.
+   * Creates a blockchain block with `prevHash`.
+   * Sends block to server.
+
+2. **Server:**
+
+   * Verifies block (hash, prevHash).
+   * Wraps payload (AES-GCM).
+   * Appends block to blockchain.
+   * Broadcasts to recipient.
+
+3. **Recipient:**
+
+   * Validates block integrity.
+   * Decrypts payload with private key.
+   * Displays message.
+
+---
+
+## 🔧 Example Blockchain Module (server/blockchainChat.js)
+
+```js
+import crypto from "crypto";
+
+let blockchain = [];
+
+// Genesis block
+function createGenesisBlock() {
+  return {
+    index: 0,
+    timestamp: Date.now(),
+    from: "system",
+    to: "all",
+    payload: "Genesis Block",
+    prevHash: "0",
+    hash: calculateHash(0, Date.now(), "system", "all", "Genesis Block", "0")
+  };
+}
+
+function calculateHash(index, timestamp, from, to, payload, prevHash) {
+  return crypto
+    .createHash("sha256")
+    .update(index + timestamp + from + to + payload + prevHash)
+    .digest("hex");
+}
+
+function getLatestBlock() {
+  return blockchain[blockchain.length - 1];
+}
+
+export function initBlockchain() {
+  blockchain = [createGenesisBlock()];
+}
+
+export function addMessageBlock(from, to, payload) {
+  const prevBlock = getLatestBlock();
+  const index = prevBlock.index + 1;
+  const timestamp = Date.now();
+  const prevHash = prevBlock.hash;
+  const hash = calculateHash(index, timestamp, from, to, payload, prevHash);
+
+  const block = { index, timestamp, from, to, payload, prevHash, hash };
+  blockchain.push(block);
+  return block;
+}
+
+export function getChain() {
+  return blockchain;
+}
+
+export function isValidChain(chain = blockchain) {
+  for (let i = 1; i < chain.length; i++) {
+    const block = chain[i];
+    const prev = chain[i - 1];
+    if (block.prevHash !== prev.hash) return false;
+    if (
+      block.hash !==
+      calculateHash(
+        block.index,
+        block.timestamp,
+        block.from,
+        block.to,
+        block.payload,
+        block.prevHash
+      )
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+```
+
+---
+
+## 🔌 Socket.IO Events
+
+* `client:sendBlock` → client sends encrypted message block.
+* `server:newBlock` → server validates & broadcasts block.
+* `client:receiveBlock` → recipient receives, verifies chain, decrypts.
+
+---
+
+## 🎨 UI / Theme
+
+* **Theme colors:** Midnight gradient (`#0b1020 → #1b1f3a`), swapgreen (`#2DE2A9`), coral (`#FF6B6B`).
+* **Animations:**
+
+  * Ripple on send.
+  * Padlock unlock on decrypt.
+  * “Swap” flip animation when message is delivered.
+
+---
+
+## 🚀 Run Instructions
+
+**Backend (server)**
+
+```bash
+cd server
+npm install express socket.io crypto
+node index.js
+```
+
+**Frontend (client)**
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+Open browser → `http://localhost:3000`
+
+---
+
+## ✅ MVP Checklist
+
+* [ ] User register/login + keypair generation
+* [ ] Blockchain initialized with genesis block
+* [ ] Send message → create block → server validates → append chain
+* [ ] Receive block → validate → decrypt → show message
+* [ ] Ledger viewer page
+* [ ] UI theme polished
+
+---
+
+✨ With this prompt, Replit (or you) will scaffold **Swapchat: a blockchain-based messenger**.
+Do you want me to also send you the **`server/index.js` full code with Socket.IO + blockchain integration**, so it’s immediately runnable?

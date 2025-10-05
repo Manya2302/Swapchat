@@ -1,0 +1,77 @@
+🔐 Login & IP Authorization Flow (Final Logic)
+
+During login, the system must follow this exact step-by-step logic:
+
+User clicks the Login button.
+
+The backend checks the user’s email and password against the database.
+
+❌ If credentials are invalid → redirect the user to the Forgot Password page.
+
+✅ If valid → continue to IP verification.
+
+Fetch the user’s current IP address from the login request using a reliable IP-fetching library such as:
+
+request-ip
+ (Node.js middleware), or
+
+req.headers['x-forwarded-for'] || req.connection.remoteAddress as a fallback.
+
+This ensures you always get the exact public IP address of the user’s current device/network.
+
+Retrieve the user’s authorizedIPs array from the user’s record in the MongoDB database.
+
+Apply the following logic:
+
+🧩 Case 1: First-Time Login (Empty authorizedIPs array)
+
+If authorizedIPs is empty:
+
+Send a verification email to the user’s registered email address.
+The email should include:
+
+The current IP address of the user.
+
+An “Authorize This IP” button or link.
+
+When the user clicks the link:
+
+Verify the request source (must match the same IP that requested login).
+
+If verified, add the IP address to the authorizedIPs array in the user’s database record.
+
+Allow login automatically.
+
+✅ Case 2: Known IP (Existing in authorizedIPs)
+
+If the current IP address exists in the authorizedIPs array:
+
+Proceed with direct login (no email verification needed).
+
+❌ Case 3: New IP Detected
+
+If the current IP address is not found in the authorizedIPs array:
+
+Send an email to the user’s registered email address with:
+
+The new IP address
+
+The timestamp
+
+An “Authorize This IP” button
+
+When the user clicks the authorization link:
+
+Verify that the IP in the request matches the IP stored during the email send.
+
+Append the IP address to the user’s authorizedIPs array.
+
+Allow login from that IP in all future sessions.
+
+This ensures:
+
+The email confirmation flow runs only the first time for each new IP.
+
+Once verified, that IP will never trigger another verification email unless removed manually.
+
+Every verified IP is securely stored in MongoDB, making it easy to analyze user access patterns later.
