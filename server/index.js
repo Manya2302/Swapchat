@@ -10,6 +10,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
 import blockchainRoutes from './routes/blockchain.js';
+import debugRoutes from './routes/debug.js';
 import { initializeBlockchain, addMessageBlock } from './lib/blockchain.js';
 import { authenticateSocket } from './middleware/auth.js';
 import { setupVite, serveStatic } from './vite.js';
@@ -32,6 +33,11 @@ app.use(cors({
   origin: process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000',
   credentials: true,
 }));
+
+// If running behind a proxy (nginx, cloudflare, etc.), trust the proxy so
+// req.ip and X-Forwarded-For are handled correctly. Set to true for now;
+// adjust in production to specific proxy IPs or CIDR if needed.
+app.set('trust proxy', true);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -61,6 +67,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/blockchain', blockchainRoutes);
+app.use('/api/debug', debugRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

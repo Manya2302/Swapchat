@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import Home from "@/pages/home";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
@@ -13,6 +14,7 @@ function Router() {
   const [location, setLocation] = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -22,6 +24,21 @@ function Router() {
       setIsAuthenticated(true);
     }
     setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const handleIPNotAuthorized = (event: any) => {
+      const message = event.detail?.message || 'Your IP address has changed. Please log in again.';
+      toast({
+        title: "Authentication Required",
+        description: message,
+        variant: "destructive",
+      });
+      handleLogout();
+    };
+
+    window.addEventListener('ip-not-authorized', handleIPNotAuthorized);
+    return () => window.removeEventListener('ip-not-authorized', handleIPNotAuthorized);
   }, []);
 
   const handleAuthenticated = () => {

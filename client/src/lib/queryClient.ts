@@ -3,6 +3,21 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
+    
+    try {
+      const errorData = JSON.parse(text);
+      if (errorData.error === 'IP_NOT_AUTHORIZED' || errorData.requiresReauth) {
+        window.dispatchEvent(new CustomEvent('ip-not-authorized', { 
+          detail: { message: errorData.message || 'Your IP address has changed. Please log in again.' }
+        }));
+        throw new Error(errorData.message || 'Your IP address has changed. Please log in again.');
+      }
+    } catch (parseError) {
+      if (parseError instanceof Error && parseError.message.includes('IP address has changed')) {
+        throw parseError;
+      }
+    }
+    
     throw new Error(`${res.status}: ${text}`);
   }
 }
