@@ -11,6 +11,27 @@ import { body, validationResult } from 'express-validator';
 
 const router = express.Router();
 
+// Normalize client IPs so comparisons are consistent across IPv6-mapped addresses
+function normalizeIP(ip) {
+  if (!ip) return ip;
+  // If header contains multiple IPs (proxy chain), take the first
+  if (ip.includes(',')) ip = ip.split(',')[0].trim();
+  // Remove port if present (e.g. 1.2.3.4:12345)
+  if (ip.includes(':') && ip.split(':').length > 2 && ip.includes('.')) {
+    // IPv6 with embedded IPv4 like ::ffff:1.2.3.4
+    const last = ip.split(':').pop();
+    if (last && last.includes('.')) ip = last;
+  } else if (ip.includes(':') && !ip.includes('.')) {
+    // pure IPv6 - keep as-is but trim
+    ip = ip.split('%')[0]; // drop zone id if present
+  } else if (ip.includes(':') && ip.includes('.')) {
+    // IPv4 with port
+    ip = ip.split(':')[0];
+  }
+
+  return ip.trim();
+}
+
 router.post('/check-username',
   body('username').trim().isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9_]+$/),
   async (req, res) => {
@@ -251,11 +272,12 @@ router.post('/login',
 
       const { username, password } = req.body;
       
-      const clientIP = requestIp.getClientIp(req) || 
-                        req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
-                        req.connection.remoteAddress || 
-                        req.socket.remoteAddress || 
-                        req.ip;
+  const rawClientIP = requestIp.getClientIp(req) || 
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+        req.connection.remoteAddress || 
+        req.socket.remoteAddress || 
+        req.ip;
+  const clientIP = normalizeIP(rawClientIP);
       
       const userAgent = req.headers['user-agent'];
 
@@ -289,8 +311,28 @@ router.post('/login',
         });
       }
 
+      // Debug: log IPs and auth state to help diagnose mismatches
+      try {
+        console.log('--- LOGIN IP DEBUG START ---');
+        console.log('rawClientIP:', rawClientIP);
+        console.log('clientIP (normalized):', clientIP);
+        console.log('user.authorizedIPs:', JSON.stringify(user.authorizedIPs));
+        console.log('Authorization header:', req.get('authorization'));
+        console.log('Cookie header:', req.get('cookie'));
+        console.log('user-agent:', userAgent);
+      } catch (e) {
+        console.error('IP debug log error:', e);
+      }
+
       const isFirstTimeLogin = !user.authorizedIPs || user.authorizedIPs.length === 0;
-      const isKnownIP = user.authorizedIPs && user.authorizedIPs.some(auth => auth.ip === clientIP);
+      const isKnownIP = user.authorizedIPs && user.authorizedIPs.some(auth => normalizeIP(auth.ip) === clientIP);
+
+      try {
+        console.log('isFirstTimeLogin:', isFirstTimeLogin, 'isKnownIP:', isKnownIP);
+        console.log('--- LOGIN IP DEBUG END ---');
+      } catch (e) {
+        /* no-op */
+      }
 
       if (isFirstTimeLogin || !isKnownIP) {
         await IPAuthorization.deleteMany({ username, ip: clientIP, authorized: false });
@@ -306,6 +348,8 @@ router.post('/login',
           expiresAt,
         });
 
+        // store normalized IP in the ipAuth record as well
+        ipAuth.ip = normalizeIP(ipAuth.ip);
         await ipAuth.save();
 
         const authUrl = `${req.protocol}://${req.get('host')}/api/auth/authorize-ip?token=${authToken}`;
@@ -369,11 +413,11 @@ router.get('/authorize-ip', async (req, res) => {
     
     console.log('Before save - authorizedIPs:', JSON.stringify(user.authorizedIPs));
 
-    const ipExists = user.authorizedIPs.some(auth => auth.ip === ipAuth.ip);
+    const ipExists = user.authorizedIPs.some(auth => normalizeIP(auth.ip) === normalizeIP(ipAuth.ip));
     
     if (!ipExists) {
       user.authorizedIPs.push({
-        ip: ipAuth.ip,
+        ip: normalizeIP(ipAuth.ip),
         authorizedAt: new Date(),
         userAgent: ipAuth.userAgent,
       });
