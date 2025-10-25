@@ -4,6 +4,10 @@ import { io, Socket } from "socket.io-client";
 import AppSidebar from "@/components/AppSidebar";
 import ChatWindow from "@/components/ChatWindow";
 import LedgerViewer from "@/components/LedgerViewer";
+import Stories from "@/components/Stories";
+import ProfileManagement from "@/pages/profile";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { User } from "lucide-react";
 import naclUtil from "tweetnacl-util";
 import nacl from "tweetnacl";
 
@@ -41,7 +45,7 @@ interface Block {
 }
 
 export default function Home({ onLogout }: HomeProps) {
-  const [activeView, setActiveView] = useState<"chat" | "ledger">("chat");
+  const [activeView, setActiveView] = useState<"chat" | "ledger" | "profile">("chat");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeContactId, setActiveContactId] = useState<string | undefined>();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -50,6 +54,11 @@ export default function Home({ onLogout }: HomeProps) {
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const token = localStorage.getItem('token');
+
+  const { data: profile } = useQuery({
+    queryKey: ['/api/users/profile'],
+    enabled: !!token,
+  });
 
   const { data: contacts = [], refetch: refetchContacts } = useQuery<Contact[]>({
     queryKey: ['/api/users/contacts'],
@@ -229,40 +238,63 @@ export default function Home({ onLogout }: HomeProps) {
 
   const activeContact = contacts.find((c) => c.id === activeContactId);
 
+  if (activeView === "profile") {
+    return <ProfileManagement onBack={() => setActiveView("chat")} />;
+  }
+
   return (
-    <div className="flex h-screen overflow-hidden">
-      <div
-        className={`${
-          isSidebarOpen ? "w-80" : "w-0"
-        } flex-shrink-0 transition-all duration-300 overflow-hidden md:w-80`}
-      >
-        <AppSidebar
-          contacts={contacts}
-          activeContactId={activeContactId}
-          onSelectContact={(id) => {
-            setActiveContactId(id);
-            setActiveView("chat");
-            setIsSidebarOpen(false);
-          }}
-          onViewLedger={() => {
-            setActiveView("ledger");
-            setIsSidebarOpen(false);
-          }}
-          onLogout={onLogout}
-        />
-      </div>
-      <div className="flex-1 min-w-0">
-        {activeView === "chat" ? (
-          <ChatWindow
-            contactName={activeContact?.name}
-            messages={activeContactId === activeContact?.id ? messages : []}
-            blockCount={blockchain.length - 1}
-            onSendMessage={handleSendMessage}
-            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+    <div className="flex h-screen overflow-hidden flex-col">
+      <div className="flex-1 flex overflow-hidden">
+        <div
+          className={`${
+            isSidebarOpen ? "w-80" : "w-0"
+          } flex-shrink-0 transition-all duration-300 overflow-hidden md:w-80`}
+        >
+          <AppSidebar
+            contacts={contacts}
+            activeContactId={activeContactId}
+            onSelectContact={(id) => {
+              setActiveContactId(id);
+              setActiveView("chat");
+              setIsSidebarOpen(false);
+            }}
+            onViewLedger={() => {
+              setActiveView("ledger");
+              setIsSidebarOpen(false);
+            }}
+            onLogout={onLogout}
           />
-        ) : (
-          <LedgerViewer blocks={blockchain} isValid={true} />
-        )}
+        </div>
+        <div className="flex-1 min-w-0 flex flex-col">
+          {activeView === "chat" && (
+            <div className="flex items-center justify-between bg-midnight-dark border-b border-gray-800 px-4 py-2">
+              <Stories />
+              <button
+                onClick={() => setActiveView("profile")}
+                className="ml-auto"
+                data-testid="button-profile"
+              >
+                <Avatar className="h-10 w-10 border-2 border-swapgreen cursor-pointer hover:border-swapgreen/80 transition-colors">
+                  <AvatarImage src={profile?.profileImage} alt={user.username} />
+                  <AvatarFallback className="bg-midnight-light text-white">
+                    <User className="h-5 w-5" />
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </div>
+          )}
+          {activeView === "chat" ? (
+            <ChatWindow
+              contactName={activeContact?.name}
+              messages={activeContactId === activeContact?.id ? messages : []}
+              blockCount={blockchain.length - 1}
+              onSendMessage={handleSendMessage}
+              onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+            />
+          ) : (
+            <LedgerViewer blocks={blockchain} isValid={true} />
+          )}
+        </div>
       </div>
     </div>
   );
