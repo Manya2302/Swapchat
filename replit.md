@@ -6,6 +6,42 @@ Swapchat is a secure messaging application that uses blockchain technology to st
 
 The platform features a WhatsApp-like user interface with a unique "Swapchat" design theme, real-time communication via WebSockets, and a complete blockchain ledger viewer for auditing message history.
 
+## Recent Changes
+
+### Profile Management & Stories Feature (October 25, 2025)
+
+**Added comprehensive profile management and ephemeral stories functionality:**
+
+1. **Profile Management**:
+   - Users can edit their profile information (full name, mobile, date of birth, description)
+   - Profile image upload with base64 encoding
+   - Profile preview accessible via avatar icon in top-right corner
+   - View-only fields for username, email, and join date
+   - Consistent Swapchat dark theme styling
+
+2. **Stories Feature** (WhatsApp-style):
+   - Create text-based stories with customizable background colors
+   - 24-hour auto-expiration using MongoDB TTL index
+   - View tracking: tracks who viewed each story and when
+   - Story viewer with navigation between multiple stories
+   - Grouped display: all stories from same user shown together
+   - Story count indicator for users with multiple active stories
+   - Privacy: users can see who viewed their stories
+
+3. **User Search & Discovery**:
+   - Search users by username with @username format
+   - User profile preview modal with detailed information
+   - "Start Chat" button to initiate conversations from search
+   - Enhanced AppSidebar with search mode toggle
+   - Real-time search with minimum 2 character requirement
+
+4. **Technical Implementation**:
+   - New API routes: `/api/users/profile`, `/api/users/search`, `/api/stories`
+   - Extended User model with `description` and `profileImage` fields
+   - New collections: `Story` and `StoryView` with proper indexing
+   - Frontend components: ProfileManagement, Stories, UserProfilePreview
+   - Integrated with existing authentication and encryption systems
+
 ## Replit Setup
 
 ### GitHub Import Setup (October 4, 2025)
@@ -95,9 +131,10 @@ Preferred communication style: Simple, everyday language.
 
 **Real-time Communication**: Socket.IO for bidirectional WebSocket communication, enabling instant message delivery with authentication middleware.
 
-**API Structure**: RESTful API with three main route groups:
+**API Structure**: RESTful API with four main route groups:
 - `/api/auth`: Authentication, registration, OTP verification, IP authorization
-- `/api/users`: User profiles, contacts list
+- `/api/users`: User profiles, contacts list, user search, profile management
+- `/api/stories`: Story creation, viewing, and view tracking with 24-hour expiration
 - `/api/blockchain`: Blockchain ledger access and validation
 
 **Security Layers**:
@@ -130,10 +167,12 @@ Preferred communication style: Simple, everyday language.
 **ODM**: Mongoose for MongoDB with schema-based document modeling and validation.
 
 **Schema Design (Collections)**:
-- `users`: Stores user credentials, cryptographic keys, authorized IPs, verification status
+- `users`: Stores user credentials, cryptographic keys, authorized IPs, verification status, profile information (description, profileImage)
 - `blocks`: Blockchain storage with encrypted message payloads
 - `otps`: One-time passwords for email verification (auto-expiring)
 - `ipauthorizations`: IP-based access control with token verification
+- `stories`: Ephemeral content with 24-hour TTL, background colors, and view tracking
+- `storyviews`: Per-user story view tracking with unique constraints
 
 **Data Encryption**: Sensitive fields (username, email, phone, fullName, dateOfBirth, private keys, message content) are encrypted at rest using AES encryption with a master encryption key via Mongoose getter/setter hooks.
 
