@@ -1,0 +1,68 @@
+Checking IP for user: manya
+User ID: 68fcc7462797f2c8dca8bc38
+Raw IP: 103.240.170.229
+Normalized IP: 103.240.170.229
+User Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36
+This user's authorized IPs: [{"ip":"103.240.170.229","authorizedAt":"2025-10-25T12:51:56.767Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36","_id":"68fcc7ec2797f2c8dca8bc47","id":"68fcc7ec2797f2c8dca8bc47"},{"ip":"106.205.238.145","authorizedAt":"2025-10-25T12:59:11.055Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36","_id":"68fcc99f121ce62dd84bbd6e","id":"68fcc99f121ce62dd84bbd6e"}]
+Number of authorized IPs for this user: 2
+Comparing stored IP 103.240.170.229 === current IP 103.240.170.229 ? true
+First time login for user manya: false
+Known IP for user manya: true
+=== LOGIN IP VERIFICATION END ===
+✓ IP AUTHORIZED - Allowing login
+✓ Socket: IP 103.240.170.229 is authorized for user manya
+User connected: manya
+3:20:13 PM [vite] hmr update /src/pages/profile.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf
+3:20:14 PM [vite] hmr update /src/pages/profile.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x2)
+3:20:17 PM [vite] hmr update /src/pages/profile.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x3)
+3:20:28 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf
+3:20:30 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x2)
+3:20:37 PM [vite] hmr update /src/pages/home.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf
+User disconnected: manya
+✓ Socket: IP 103.240.170.229 is authorized for user manya
+User connected: manya
+3:20:50 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf
+3:20:51 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x2)
+3:20:56 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x3)
+3:21:01 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x4)
+3:21:14 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x5)
+3:21:42 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x6)
+3:21:53 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x7)
+3:22:03 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x8)
+3:24:48 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x9)
+3:24:51 PM [vite] hmr update /src/components/Stories.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf (x10)
+3:24:55 PM [vite] hmr update /src/pages/profile.tsx, /src/index.css?v=_l69grmU6yB749A3x54Sf
+Error: PayloadTooLargeError: request entity too large
+    at readStream (/home/runner/workspace/node_modules/raw-body/index.js:163:17)
+    at getRawBody (/home/runner/workspace/node_modules/raw-body/index.js:116:12)
+    at read (/home/runner/workspace/node_modules/body-parser/lib/read.js:79:3)
+    at jsonParser (/home/runner/workspace/node_modules/body-parser/lib/types/json.js:138:5)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at file:///home/runner/workspace/node_modules/express-rate-limit/dist/index.mjs:870:7
+    at async file:///home/runner/workspace/node_modules/express-rate-limit/dist/index.mjs:753:5 {
+  expected: 179419,
+  length: 179419,
+  limit: 102400,
+  type: 'entity.too.large'
+}
+Error: PayloadTooLargeError: request entity too large
+    at readStream (/home/runner/workspace/node_modules/raw-body/index.js:163:17)
+    at getRawBody (/home/runner/workspace/node_modules/raw-body/index.js:116:12)
+    at read (/home/runner/workspace/node_modules/body-parser/lib/read.js:79:3)
+    at jsonParser (/home/runner/workspace/node_modules/body-parser/lib/types/json.js:138:5)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at file:///home/runner/workspace/node_modules/express-rate-limit/dist/index.mjs:870:7
+    at async file:///home/runner/workspace/node_modules/express-rate-limit/dist/index.mjs:753:5 {
+  expected: 179419,
+  length: 179419,
+  limit: 102400,
+  type: 'entity.too.large'
+}
