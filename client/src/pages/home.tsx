@@ -66,6 +66,7 @@ export default function Home({ onLogout }: HomeProps) {
 
     const socket = io({
       auth: { token },
+      forceNew: true,
     });
 
     socketRef.current = socket;
@@ -104,7 +105,10 @@ export default function Home({ onLogout }: HomeProps) {
     });
 
     return () => {
+      console.log('Disconnecting socket for user:', user.username);
       socket.disconnect();
+      socket.removeAllListeners();
+      socketRef.current = null;
     };
   }, [token]);
 
