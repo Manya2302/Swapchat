@@ -308,6 +308,11 @@ router.post('/login',
         });
       }
       
+      console.log('=== USER LOOKUP START ===');
+      console.log('Looking up user:', username);
+      console.log('Found user ID:', foundUser._id);
+      console.log('=== USER LOOKUP END ===');
+      
       const user = await User.findById(foundUser._id);
 
       if (!user) {
@@ -317,6 +322,12 @@ router.post('/login',
           redirectToForgotPassword: true
         });
       }
+      
+      console.log('=== USER VERIFICATION ===');
+      console.log('Verified user ID:', user._id);
+      console.log('Verified username:', user.username);
+      console.log('This user has', user.authorizedIPs?.length || 0, 'authorized IPs');
+      console.log('=== END USER VERIFICATION ===');
 
       const passwordMatch = await user.comparePassword(password);
       if (!passwordMatch) {
@@ -328,21 +339,29 @@ router.post('/login',
       }
 
       console.log('=== LOGIN IP VERIFICATION START ===');
-      console.log('User:', username);
+      console.log('Checking IP for user:', username);
+      console.log('User ID:', user._id.toString());
       console.log('Raw IP:', rawClientIP);
       console.log('Normalized IP:', clientIP);
       console.log('User Agent:', userAgent);
-      console.log('Current authorized IPs:', JSON.stringify(user.authorizedIPs));
+      console.log('This user\'s authorized IPs:', JSON.stringify(user.authorizedIPs));
+      console.log('Number of authorized IPs for this user:', user.authorizedIPs?.length || 0);
 
-      const isFirstTimeLogin = !user.authorizedIPs || user.authorizedIPs.length === 0;
-      const isKnownIP = user.authorizedIPs && user.authorizedIPs.some(auth => {
+      if (!user.authorizedIPs) {
+        console.log('WARNING: authorizedIPs is null/undefined for user', username);
+        user.authorizedIPs = [];
+      }
+
+      const isFirstTimeLogin = user.authorizedIPs.length === 0;
+      const isKnownIP = user.authorizedIPs.some(auth => {
         const normalizedAuthIP = normalizeIP(auth.ip);
-        console.log(`Comparing: ${normalizedAuthIP} === ${clientIP} ? ${normalizedAuthIP === clientIP}`);
-        return normalizedAuthIP === clientIP;
+        const matches = normalizedAuthIP === clientIP;
+        console.log(`Comparing stored IP ${normalizedAuthIP} === current IP ${clientIP} ? ${matches}`);
+        return matches;
       });
 
-      console.log('First time login:', isFirstTimeLogin);
-      console.log('Known IP:', isKnownIP);
+      console.log('First time login for user', username + ':', isFirstTimeLogin);
+      console.log('Known IP for user', username + ':', isKnownIP);
       console.log('=== LOGIN IP VERIFICATION END ===');
 
       if (isFirstTimeLogin || !isKnownIP) {

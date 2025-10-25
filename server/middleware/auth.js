@@ -34,6 +34,13 @@ export async function authenticateToken(req, res, next) {
       return res.status(401).json({ error: 'Invalid token.' });
     }
 
+    console.log('=== MIDDLEWARE: AUTHENTICATING USER ===');
+    console.log('User from token:', decoded.username);
+    console.log('User ID from token:', decoded.userId);
+    console.log('User ID from DB:', user._id.toString());
+    console.log('Username from DB:', user.username);
+    console.log('This user has', user.authorizedIPs?.length || 0, 'authorized IPs');
+
     const rawClientIP = requestIp.getClientIp(req) || 
       req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
       req.connection.remoteAddress || 
@@ -43,7 +50,9 @@ export async function authenticateToken(req, res, next) {
 
     const isAuthorizedIP = user.authorizedIPs && user.authorizedIPs.some(auth => {
       const normalizedAuthIP = normalizeIP(auth.ip);
-      return normalizedAuthIP === clientIP;
+      const matches = normalizedAuthIP === clientIP;
+      console.log(`Middleware IP check: ${normalizedAuthIP} === ${clientIP} ? ${matches}`);
+      return matches;
     });
 
     if (!isAuthorizedIP) {
