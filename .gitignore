@@ -4,8 +4,7 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
-.env
-.env.local
+
 
 # MongoDB
 /tmp/mongodb_data
