@@ -53,6 +53,14 @@ const userSchema = new mongoose.Schema({
     authorizedAt: Date,
     userAgent: String,
   }],
+  description: {
+    type: String,
+    default: '',
+  },
+  profileImage: {
+    type: String,
+    default: '',
+  },
   isVerified: {
     type: Boolean,
     default: false,

@@ -19,6 +19,7 @@ console.log('Basic imports loaded');
 import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
 import blockchainRoutes from './routes/blockchain.js';
+import storiesRoutes from './routes/stories.js';
 import { initializeBlockchain, addMessageBlock } from './lib/blockchain.js';
 import { authenticateSocket } from './middleware/auth.js';
 import { setupVite, serveStatic } from './vite.js';
@@ -66,6 +67,7 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/blockchain', blockchainRoutes);
+app.use('/api/stories', storiesRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
