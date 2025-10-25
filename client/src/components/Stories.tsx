@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, X, Eye, User } from "lucide-react";
+import { Plus, X, Eye, User, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -17,6 +17,7 @@ interface Story {
   content: string;
   mediaType: string;
   backgroundColor: string;
+  image?: string;
   createdAt: string;
   expiresAt: string;
   viewCount: number;
@@ -37,6 +38,8 @@ export default function Stories() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [storyContent, setStoryContent] = useState('');
   const [backgroundColor, setBackgroundColor] = useState('#1a1a1a');
+  const [storyImage, setStoryImage] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<'text' | 'image'>('text');
   const [currentStoryGroup, setCurrentStoryGroup] = useState<Story[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [showViewers, setShowViewers] = useState(false);
@@ -46,20 +49,21 @@ export default function Stories() {
   });
 
   const createStoryMutation = useMutation({
-    mutationFn: async (data: { content: string; backgroundColor: string }) => {
-      return await apiRequest('/api/stories', {
-        method: 'POST',
-        body: JSON.stringify({
-          content: data.content,
-          mediaType: 'text',
-          backgroundColor: data.backgroundColor,
-        }),
+    mutationFn: async (data: { content: string; backgroundColor: string; mediaType: string; image?: string }) => {
+      const response = await apiRequest('POST', '/api/stories', {
+        content: data.content,
+        mediaType: data.mediaType,
+        backgroundColor: data.backgroundColor,
+        image: data.image,
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/stories'] });
       setIsCreateOpen(false);
       setStoryContent('');
+      setStoryImage(null);
+      setMediaType('text');
       toast({
         title: "Story Posted",
         description: "Your story has been posted and will expire in 24 hours.",
@@ -69,17 +73,28 @@ export default function Stories() {
 
   const markViewedMutation = useMutation({
     mutationFn: async (storyId: string) => {
-      return await apiRequest(`/api/stories/${storyId}/view`, {
-        method: 'POST',
-      });
+      const response = await apiRequest('POST', `/api/stories/${storyId}/view`, {});
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/stories'] });
     },
   });
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setStoryImage(reader.result as string);
+        setMediaType('image');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleCreateStory = () => {
-    if (!storyContent.trim()) {
+    if (mediaType === 'text' && !storyContent.trim()) {
       toast({
         title: "Error",
         description: "Please enter some content for your story.",
@@ -88,9 +103,20 @@ export default function Stories() {
       return;
     }
 
+    if (mediaType === 'image' && !storyImage) {
+      toast({
+        title: "Error",
+        description: "Please upload an image for your story.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     createStoryMutation.mutate({
-      content: storyContent,
+      content: storyContent || 'Image story',
       backgroundColor,
+      mediaType,
+      image: storyImage || undefined,
     });
   };
 
@@ -131,6 +157,15 @@ export default function Stories() {
     '#1a1a1a', '#1e3a8a', '#7c2d12', '#831843', '#064e3b',
     '#713f12', '#4c1d95', '#14532d', '#991b1b', '#1e40af'
   ];
+
+  const getTextColor = (bgColor: string) => {
+    const hex = bgColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 128 ? '#000000' : '#ffffff';
+  };
 
   return (
     <>
@@ -188,49 +223,124 @@ export default function Stories() {
             <DialogTitle className="text-2xl">Create Story</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="text-sm text-gray-400 mb-2 block">Background Color</label>
-              <div className="flex flex-wrap gap-2">
-                {colors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setBackgroundColor(color)}
-                    className={`h-10 w-10 rounded-full border-2 ${
-                      backgroundColor === color ? 'border-swapgreen scale-110' : 'border-gray-700'
-                    } transition-transform`}
-                    style={{ backgroundColor: color }}
-                    data-testid={`color-${color}`}
+            <div className="flex gap-2">
+              <Button
+                variant={mediaType === 'text' ? 'default' : 'outline'}
+                onClick={() => {
+                  setMediaType('text');
+                  setStoryImage(null);
+                }}
+                className={mediaType === 'text' ? 'bg-swapgreen text-black' : 'border-gray-700 text-white'}
+                data-testid="button-text-story"
+              >
+                Text
+              </Button>
+              <Button
+                variant={mediaType === 'image' ? 'default' : 'outline'}
+                onClick={() => setMediaType('image')}
+                className={mediaType === 'image' ? 'bg-swapgreen text-black' : 'border-gray-700 text-white'}
+                data-testid="button-image-story"
+              >
+                <ImageIcon className="h-4 w-4 mr-2" />
+                Image
+              </Button>
+            </div>
+
+            {mediaType === 'text' ? (
+              <>
+                <div>
+                  <label className="text-sm text-gray-400 mb-2 block">Background Color</label>
+                  <div className="flex flex-wrap gap-2">
+                    {colors.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setBackgroundColor(color)}
+                        className={`h-10 w-10 rounded-full border-2 ${
+                          backgroundColor === color ? 'border-swapgreen scale-110' : 'border-gray-700'
+                        } transition-transform`}
+                        style={{ backgroundColor: color }}
+                        data-testid={`color-${color}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-400 mb-2 block">Content</label>
+                  <Textarea
+                    value={storyContent}
+                    onChange={(e) => setStoryContent(e.target.value)}
+                    placeholder="What's on your mind?"
+                    className="bg-midnight-light border-gray-700 text-white min-h-[150px]"
+                    maxLength={300}
+                    data-testid="textarea-story-content"
                   />
-                ))}
+                  <p className="text-xs text-gray-500 mt-1">{storyContent.length}/300</p>
+                </div>
+
+                <div 
+                  className="rounded-lg p-6 flex items-center justify-center text-center min-h-[200px]"
+                  style={{ backgroundColor }}
+                >
+                  <p 
+                    className="text-lg break-words max-w-full px-4 font-medium"
+                    style={{ color: getTextColor(backgroundColor) }}
+                  >
+                    {storyContent || "Your story preview..."}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="text-sm text-gray-400 mb-2 block">Upload Image</label>
+                <div className="flex flex-col items-center space-y-4">
+                  {storyImage ? (
+                    <div className="relative w-full">
+                      <img 
+                        src={storyImage} 
+                        alt="Story preview" 
+                        className="w-full h-64 object-cover rounded-lg"
+                      />
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        onClick={() => setStoryImage(null)}
+                        className="absolute top-2 right-2"
+                        data-testid="button-remove-image"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="story-image"
+                      className="w-full h-64 border-2 border-dashed border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-swapgreen transition-colors"
+                    >
+                      <ImageIcon className="h-12 w-12 text-gray-400 mb-2" />
+                      <span className="text-gray-400">Click to upload image</span>
+                      <input
+                        id="story-image"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                        data-testid="input-story-image"
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400 mb-2 block">Content</label>
-              <Textarea
-                value={storyContent}
-                onChange={(e) => setStoryContent(e.target.value)}
-                placeholder="What's on your mind?"
-                className="bg-midnight-light border-gray-700 text-white min-h-[150px]"
-                maxLength={300}
-                data-testid="textarea-story-content"
-              />
-              <p className="text-xs text-gray-500 mt-1">{storyContent.length}/300</p>
-            </div>
-
-            <div 
-              className="rounded-lg p-6 flex items-center justify-center text-center min-h-[200px]"
-              style={{ backgroundColor }}
-            >
-              <p className="text-white text-lg break-words max-w-full px-4">
-                {storyContent || "Your story preview..."}
-              </p>
-            </div>
+            )}
 
             <div className="flex justify-end space-x-2">
               <Button
                 variant="outline"
-                onClick={() => setIsCreateOpen(false)}
+                onClick={() => {
+                  setIsCreateOpen(false);
+                  setStoryContent('');
+                  setStoryImage(null);
+                  setMediaType('text');
+                }}
                 className="border-gray-700 text-white hover:bg-midnight-light"
                 data-testid="button-cancel-story"
               >
@@ -238,7 +348,7 @@ export default function Stories() {
               </Button>
               <Button
                 onClick={handleCreateStory}
-                disabled={createStoryMutation.isPending || !storyContent.trim()}
+                disabled={createStoryMutation.isPending || (mediaType === 'text' && !storyContent.trim()) || (mediaType === 'image' && !storyImage)}
                 className="bg-swapgreen hover:bg-swapgreen/90 text-black"
                 data-testid="button-post-story"
               >
@@ -302,15 +412,31 @@ export default function Stories() {
                 </div>
               </div>
 
-              <div
-                onClick={handleNextStory}
-                className="absolute inset-0 flex items-center justify-center p-8 cursor-pointer"
-                style={{ backgroundColor: currentStory.backgroundColor }}
-              >
-                <p className="text-white text-xl text-center break-words max-w-full">
-                  {currentStory.content}
-                </p>
-              </div>
+              {currentStory.mediaType === 'image' && currentStory.image ? (
+                <div
+                  onClick={handleNextStory}
+                  className="absolute inset-0 cursor-pointer"
+                >
+                  <img 
+                    src={currentStory.image} 
+                    alt="Story"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div
+                  onClick={handleNextStory}
+                  className="absolute inset-0 flex items-center justify-center p-8 cursor-pointer"
+                  style={{ backgroundColor: currentStory.backgroundColor }}
+                >
+                  <p 
+                    className="text-xl text-center break-words max-w-full font-medium"
+                    style={{ color: getTextColor(currentStory.backgroundColor) }}
+                  >
+                    {currentStory.content}
+                  </p>
+                </div>
+              )}
 
               {currentStoryIndex > 0 && (
                 <button

@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { content, mediaType, backgroundColor } = req.body;
+    const { content, mediaType, backgroundColor, image } = req.body;
 
     if (!content) {
       return res.status(400).json({ error: 'Content is required' });
@@ -27,6 +27,7 @@ router.post('/', authenticateToken, async (req, res) => {
       content,
       mediaType: mediaType || 'text',
       backgroundColor: backgroundColor || '#1a1a1a',
+      image: image || '',
       expiresAt,
     });
 
@@ -39,6 +40,7 @@ router.post('/', authenticateToken, async (req, res) => {
       content: story.content,
       mediaType: story.mediaType,
       backgroundColor: story.backgroundColor,
+      image: story.image,
       createdAt: story.createdAt,
       expiresAt: story.expiresAt,
       viewCount: 0,
@@ -83,6 +85,7 @@ router.get('/', authenticateToken, async (req, res) => {
         content: story.content,
         mediaType: story.mediaType,
         backgroundColor: story.backgroundColor,
+        image: story.image,
         createdAt: story.createdAt,
         expiresAt: story.expiresAt,
         viewCount: views.length,

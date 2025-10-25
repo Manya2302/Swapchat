@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -40,23 +40,24 @@ export default function ProfileManagement({ onBack }: ProfileManagementProps) {
 
   const { data: profile, isLoading } = useQuery<UserProfile>({
     queryKey: ['/api/users/profile'],
-    onSuccess: (data) => {
-      setFormData({
-        fullName: data.fullName,
-        phone: data.phone,
-        dateOfBirth: data.dateOfBirth,
-        description: data.description || '',
-        profileImage: data.profileImage || '',
-      });
-    },
   });
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        fullName: profile.fullName,
+        phone: profile.phone,
+        dateOfBirth: profile.dateOfBirth,
+        description: profile.description || '',
+        profileImage: profile.profileImage || '',
+      });
+    }
+  }, [profile]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Partial<UserProfile>) => {
-      return await apiRequest('/api/users/profile', {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('PUT', '/api/users/profile', data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/profile'] });

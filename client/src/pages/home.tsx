@@ -55,7 +55,11 @@ export default function Home({ onLogout }: HomeProps) {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const token = localStorage.getItem('token');
 
-  const { data: profile } = useQuery({
+  interface UserProfile {
+    profileImage?: string;
+  }
+
+  const { data: profile } = useQuery<UserProfile>({
     queryKey: ['/api/users/profile'],
     enabled: !!token,
   });
