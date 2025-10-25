@@ -157,13 +157,25 @@ Preferred communication style: Simple, everyday language.
 - IP whitelist per user account
 - Token expiration and refresh mechanism
 - Socket authentication for real-time features
+- Strict IP validation on every authenticated request
+- Automatic IP change detection with re-authorization flow
+
+**IP Authorization System (Enhanced October 25, 2025)**:
+- **Registration**: User's IP is automatically captured and stored in `authorizedIPs` array during account creation
+- **Login**: System checks if login IP matches any authorized IP; blocks unknown IPs and sends email verification
+- **Authenticated Requests**: Every API call validates the request IP against authorized IPs via middleware
+- **Socket Connections**: WebSocket connections also validate IP before establishing connection
+- **IP Change Detection**: When user switches networks (e.g., mobile hotspot to Wi-Fi), system detects the new IP and requires email authorization before allowing access
+- **Email Verification**: User receives authorization link via email with 1-hour expiration
+- **IP Normalization**: All IPs are normalized (IPv4/IPv6 handling) before storage and comparison to ensure consistency
+- **Security**: Prevents unauthorized access even with valid JWT tokens if IP changes
 
 **User Registration Process**:
 1. Username availability check
 2. Email OTP generation and verification
 3. Cryptographic key pair generation
-4. IP authorization for first device
-5. Account creation with encrypted credentials
+4. Account creation with encrypted credentials
+5. Initial IP address automatically authorized and stored
 
 ## External Dependencies
 
