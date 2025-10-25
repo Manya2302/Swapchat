@@ -14,19 +14,23 @@ The platform features a WhatsApp-like user interface with a unique "Swapchat" de
 
 1. **Profile Management**:
    - Users can edit their profile information (full name, mobile, date of birth, description)
-   - Profile image upload with base64 encoding
+   - Profile image upload with base64 encoding and local storage
    - Profile preview accessible via avatar icon in top-right corner
    - View-only fields for username, email, and join date
    - Consistent Swapchat dark theme styling
+   - Authenticated API calls using cookie-based JWT tokens
 
 2. **Stories Feature** (WhatsApp-style):
    - Create text-based stories with customizable background colors
+   - Image upload support with base64 encoding for stories
+   - Dynamic text color visibility based on background brightness
    - 24-hour auto-expiration using MongoDB TTL index
    - View tracking: tracks who viewed each story and when
    - Story viewer with navigation between multiple stories
    - Grouped display: all stories from same user shown together
    - Story count indicator for users with multiple active stories
    - Privacy: users can see who viewed their stories
+   - Authenticated mutations using apiRequest helper with credentials
 
 3. **User Search & Discovery**:
    - Search users by username with @username format
@@ -38,9 +42,14 @@ The platform features a WhatsApp-like user interface with a unique "Swapchat" de
 4. **Technical Implementation**:
    - New API routes: `/api/users/profile`, `/api/users/search`, `/api/stories`
    - Extended User model with `description` and `profileImage` fields
+   - Extended Story model with `image` field for base64-encoded images
    - New collections: `Story` and `StoryView` with proper indexing
    - Frontend components: ProfileManagement, Stories, UserProfilePreview
    - Integrated with existing authentication and encryption systems
+   - All mutations use `apiRequest` helper for authenticated requests with credentials
+   - Fixed TypeScript compilation issues (removed deprecated `onSuccess`, corrected mutation patterns)
+   - Image upload support with FileReader API for base64 conversion
+   - Dynamic text color calculation for readability on various backgrounds
 
 ## Replit Setup
 
