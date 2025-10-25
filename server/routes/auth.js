@@ -190,6 +190,15 @@ router.post('/register',
 
       const { username, password, email, fullName, phone, dateOfBirth, publicKey, privateKey } = req.body;
 
+      // Get and normalize client IP address
+      const rawClientIP = requestIp.getClientIp(req) || 
+        req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+        req.connection.remoteAddress || 
+        req.socket.remoteAddress || 
+        req.ip;
+      const clientIP = normalizeIP(rawClientIP);
+      const userAgent = req.headers['user-agent'];
+
       // Find verified OTPs and check if any match the provided email
       const verifiedOTPs = await OTP.find({ verified: true }).lean();
       const normalizedEmail = email.trim().toLowerCase();
@@ -229,9 +238,16 @@ router.post('/register',
         publicKey,
         privateKey,
         isVerified: true,
+        authorizedIPs: [{
+          ip: clientIP,
+          authorizedAt: new Date(),
+          userAgent: userAgent || 'Unknown'
+        }]
       });
 
       await user.save();
+      
+      console.log('✓ User registered with initial IP:', clientIP);
 
       // Delete the verified OTP using its ID
       await OTP.deleteOne({ _id: otpDoc._id });
@@ -311,30 +327,27 @@ router.post('/login',
         });
       }
 
-      // Debug: log IPs and auth state to help diagnose mismatches
-      try {
-        console.log('--- LOGIN IP DEBUG START ---');
-        console.log('rawClientIP:', rawClientIP);
-        console.log('clientIP (normalized):', clientIP);
-        console.log('user.authorizedIPs:', JSON.stringify(user.authorizedIPs));
-        console.log('Authorization header:', req.get('authorization'));
-        console.log('Cookie header:', req.get('cookie'));
-        console.log('user-agent:', userAgent);
-      } catch (e) {
-        console.error('IP debug log error:', e);
-      }
+      console.log('=== LOGIN IP VERIFICATION START ===');
+      console.log('User:', username);
+      console.log('Raw IP:', rawClientIP);
+      console.log('Normalized IP:', clientIP);
+      console.log('User Agent:', userAgent);
+      console.log('Current authorized IPs:', JSON.stringify(user.authorizedIPs));
 
       const isFirstTimeLogin = !user.authorizedIPs || user.authorizedIPs.length === 0;
-      const isKnownIP = user.authorizedIPs && user.authorizedIPs.some(auth => normalizeIP(auth.ip) === clientIP);
+      const isKnownIP = user.authorizedIPs && user.authorizedIPs.some(auth => {
+        const normalizedAuthIP = normalizeIP(auth.ip);
+        console.log(`Comparing: ${normalizedAuthIP} === ${clientIP} ? ${normalizedAuthIP === clientIP}`);
+        return normalizedAuthIP === clientIP;
+      });
 
-      try {
-        console.log('isFirstTimeLogin:', isFirstTimeLogin, 'isKnownIP:', isKnownIP);
-        console.log('--- LOGIN IP DEBUG END ---');
-      } catch (e) {
-        /* no-op */
-      }
+      console.log('First time login:', isFirstTimeLogin);
+      console.log('Known IP:', isKnownIP);
+      console.log('=== LOGIN IP VERIFICATION END ===');
 
       if (isFirstTimeLogin || !isKnownIP) {
+        console.log('❌ IP NOT AUTHORIZED - Blocking login and sending email verification');
+        
         await IPAuthorization.deleteMany({ username, ip: clientIP, authorized: false });
 
         const authToken = crypto.randomBytes(32).toString('hex');
@@ -348,22 +361,30 @@ router.post('/login',
           expiresAt,
         });
 
-        // store normalized IP in the ipAuth record as well
         ipAuth.ip = normalizeIP(ipAuth.ip);
         await ipAuth.save();
 
         const authUrl = `${req.protocol}://${req.get('host')}/api/auth/authorize-ip?token=${authToken}`;
-        await sendIPAuthorizationEmail(user.email, username, clientIP, authUrl);
+        
+        try {
+          await sendIPAuthorizationEmail(user.email, username, clientIP, authUrl);
+          console.log('✓ IP authorization email sent to:', user.email);
+        } catch (emailError) {
+          console.error('Failed to send IP authorization email:', emailError);
+        }
 
         return res.status(403).json({
           error: 'IP_AUTHORIZATION_REQUIRED',
           message: isFirstTimeLogin 
-            ? 'First-time login detected. Please check your email to authorize this IP address.'
-            : 'New device detected. Please check your email to authorize this device.',
+            ? 'First-time login detected. An authorization email has been sent to your registered email address. Please check your email to authorize this IP address before logging in.'
+            : 'Login attempt from a new IP address detected. An authorization email has been sent to your registered email address. Please verify this new IP address to continue.',
           isFirstTimeLogin,
-          ip: clientIP
+          ip: clientIP,
+          email: user.email
         });
       }
+
+      console.log('✓ IP AUTHORIZED - Allowing login');
 
       const token = jwt.sign(
         { userId: user._id, username: user.username },
@@ -391,6 +412,10 @@ router.get('/authorize-ip', async (req, res) => {
   try {
     const { token } = req.query;
 
+    if (!token) {
+      return res.status(400).send('<h1>Authorization token is required</h1>');
+    }
+
     const ipAuth = await IPAuthorization.findOne({ token, authorized: false });
 
     if (!ipAuth) {
@@ -406,33 +431,52 @@ router.get('/authorize-ip', async (req, res) => {
     const foundUser = allUsers.find(u => u.username === ipAuth.username);
 
     if (!foundUser) {
+      console.error('User not found for IP authorization:', ipAuth.username);
       return res.status(400).send('<h1>User not found</h1>');
     }
 
     const user = await User.findById(foundUser._id);
     
-    console.log('Before save - authorizedIPs:', JSON.stringify(user.authorizedIPs));
+    if (!user) {
+      console.error('User not found by ID:', foundUser._id);
+      return res.status(400).send('<h1>User not found</h1>');
+    }
+    
+    console.log('=== IP AUTHORIZATION START ===');
+    console.log('User:', user.username);
+    console.log('IP to authorize:', ipAuth.ip);
+    console.log('Normalized IP:', normalizeIP(ipAuth.ip));
+    console.log('Current authorizedIPs:', JSON.stringify(user.authorizedIPs));
 
-    const ipExists = user.authorizedIPs.some(auth => normalizeIP(auth.ip) === normalizeIP(ipAuth.ip));
+    const normalizedNewIP = normalizeIP(ipAuth.ip);
+    const ipExists = user.authorizedIPs && user.authorizedIPs.some(auth => normalizeIP(auth.ip) === normalizedNewIP);
     
     if (!ipExists) {
+      if (!user.authorizedIPs) {
+        user.authorizedIPs = [];
+      }
+      
       user.authorizedIPs.push({
-        ip: normalizeIP(ipAuth.ip),
+        ip: normalizedNewIP,
         authorizedAt: new Date(),
-        userAgent: ipAuth.userAgent,
+        userAgent: ipAuth.userAgent || 'Unknown',
       });
       
       console.log('After push - authorizedIPs:', JSON.stringify(user.authorizedIPs));
 
       await user.save();
       
-      console.log('✓ IP address saved to database:', ipAuth.ip);
+      const savedUser = await User.findById(user._id);
+      console.log('Verification - Saved authorizedIPs:', JSON.stringify(savedUser.authorizedIPs));
+      console.log('✓ IP address successfully saved to database:', normalizedNewIP);
     } else {
-      console.log('IP already exists in authorizedIPs:', ipAuth.ip);
+      console.log('IP already exists in authorizedIPs:', normalizedNewIP);
     }
 
     ipAuth.authorized = true;
     await ipAuth.save();
+    
+    console.log('=== IP AUTHORIZATION COMPLETE ===');
 
     res.send(`
       <html>

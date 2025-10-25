@@ -41,17 +41,22 @@ export async function authenticateToken(req, res, next) {
       req.ip;
     const clientIP = normalizeIP(rawClientIP);
 
-    const isAuthorizedIP = user.authorizedIPs && user.authorizedIPs.some(auth => normalizeIP(auth.ip) === clientIP);
+    const isAuthorizedIP = user.authorizedIPs && user.authorizedIPs.some(auth => {
+      const normalizedAuthIP = normalizeIP(auth.ip);
+      return normalizedAuthIP === clientIP;
+    });
 
     if (!isAuthorizedIP) {
-      console.log('--- IP MISMATCH DETECTED ---');
+      console.log('=== MIDDLEWARE: IP AUTHORIZATION CHECK FAILED ===');
       console.log('User:', user.username);
-      console.log('Current IP:', clientIP);
+      console.log('Raw IP:', rawClientIP);
+      console.log('Normalized Current IP:', clientIP);
+      console.log('User Agent:', req.headers['user-agent']);
       console.log('Authorized IPs:', JSON.stringify(user.authorizedIPs));
-      console.log('--- END IP MISMATCH ---');
+      console.log('Request Path:', req.path);
+      console.log('Request Method:', req.method);
 
       try {
-        // Remove any previous pending (unauthorized) entries for this username+ip to avoid duplicates
         await IPAuthorization.deleteMany({ username: user.username, ip: clientIP, authorized: false });
 
         const authToken = crypto.randomBytes(32).toString('hex');
@@ -65,26 +70,35 @@ export async function authenticateToken(req, res, next) {
           expiresAt,
         });
 
-        // Store normalized IP on the ipAuth record as well
         ipAuth.ip = normalizeIP(ipAuth.ip);
         await ipAuth.save();
 
         const authUrl = `${req.protocol}://${req.get('host')}/api/auth/authorize-ip?token=${authToken}`;
 
-        // Send email (don't fail the request if email sending fails)
-        sendIPAuthorizationEmail(user.email, user.username, ipAuth.ip, authUrl).catch(err => {
-          console.error('Failed to send IP authorization email:', err);
-        });
+        try {
+          await sendIPAuthorizationEmail(user.email, user.username, ipAuth.ip, authUrl);
+          console.log('✓ IP authorization email sent to:', user.email);
+        } catch (emailErr) {
+          console.error('Failed to send IP authorization email:', emailErr);
+        }
+        
+        console.log('✓ IP authorization request created for IP:', clientIP);
       } catch (err) {
         console.error('Error creating/sending IP authorization:', err);
       }
 
+      console.log('❌ Access denied - IP not authorized');
+      console.log('=== END MIDDLEWARE IP CHECK ===');
+
       return res.status(403).json({ 
         error: 'IP_NOT_AUTHORIZED',
-        message: 'Your IP address has changed. An authorization email has been sent to your account. Please verify the new IP to continue.',
-        requiresReauth: true
+        message: 'Your IP address has changed or is not authorized. An authorization email has been sent to your registered email address. Please verify the new IP address to continue.',
+        requiresReauth: true,
+        ip: clientIP
       });
     }
+
+    console.log(`✓ Middleware: IP ${clientIP} is authorized for user ${user.username}`);
 
     req.user = {
       id: user._id,
@@ -109,22 +123,35 @@ export function authenticateSocket(socket, next) {
     socket.userId = decoded.userId;
     socket.username = decoded.username;
 
-    // Additionally enforce IP-based authorization for socket connections
     (async () => {
       try {
         const user = await User.findById(decoded.userId);
-        if (!user) return next(new Error('Authentication error'));
+        if (!user) {
+          console.error('Socket auth: User not found');
+          return next(new Error('Authentication error'));
+        }
 
         const rawClientIP = socket.handshake.headers['x-forwarded-for']?.split(',')[0]?.trim() || socket.handshake.address;
         const clientIP = normalizeIP(rawClientIP);
 
-        const isAuthorizedIP = user.authorizedIPs && user.authorizedIPs.some(auth => normalizeIP(auth.ip) === clientIP);
+        const isAuthorizedIP = user.authorizedIPs && user.authorizedIPs.some(auth => {
+          const normalizedAuthIP = normalizeIP(auth.ip);
+          return normalizedAuthIP === clientIP;
+        });
+
         if (!isAuthorizedIP) {
-          // create IPAuthorization and send email, then reject socket connection
+          console.log('=== SOCKET: IP AUTHORIZATION CHECK FAILED ===');
+          console.log('User:', user.username);
+          console.log('Raw IP:', rawClientIP);
+          console.log('Normalized IP:', clientIP);
+          console.log('Authorized IPs:', JSON.stringify(user.authorizedIPs));
+
           try {
             await IPAuthorization.deleteMany({ username: user.username, ip: clientIP, authorized: false });
+            
             const authToken = crypto.randomBytes(32).toString('hex');
             const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+            
             const ipAuth = new IPAuthorization({
               username: user.username,
               ip: clientIP,
@@ -132,16 +159,30 @@ export function authenticateSocket(socket, next) {
               userAgent: socket.handshake.headers['user-agent'],
               expiresAt,
             });
+            
             ipAuth.ip = normalizeIP(ipAuth.ip);
             await ipAuth.save();
-            const authUrl = `https://${socket.handshake.headers.host}/api/auth/authorize-ip?token=${authToken}`;
-            sendIPAuthorizationEmail(user.email, user.username, ipAuth.ip, authUrl).catch(console.error);
+            
+            const protocol = socket.handshake.headers['x-forwarded-proto'] || 'https';
+            const host = socket.handshake.headers.host;
+            const authUrl = `${protocol}://${host}/api/auth/authorize-ip?token=${authToken}`;
+            
+            try {
+              await sendIPAuthorizationEmail(user.email, user.username, ipAuth.ip, authUrl);
+              console.log('✓ Socket: IP authorization email sent to:', user.email);
+            } catch (emailErr) {
+              console.error('Socket: Failed to send IP authorization email:', emailErr);
+            }
           } catch (e) {
-            console.error('Socket IP auth error:', e);
+            console.error('Socket IP auth creation error:', e);
           }
+          
+          console.log('❌ Socket connection denied - IP not authorized');
+          console.log('=== END SOCKET IP CHECK ===');
           return next(new Error('IP_NOT_AUTHORIZED'));
         }
 
+        console.log(`✓ Socket: IP ${clientIP} is authorized for user ${user.username}`);
         next();
       } catch (e) {
         console.error('Socket auth processing error:', e);
